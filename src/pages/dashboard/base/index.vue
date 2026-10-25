@@ -43,45 +43,6 @@
       </t-swiper-item>
     </t-swiper>
 
-    <!-- 系统公告 -->
-    <t-card v-if="announcements.length > 0" class="announcement-card row-container">
-      <template #title>
-        <div class="announcement-title">
-          <notification-icon class="announcement-title__icon" />
-          <span>{{ t('dashboard.announcement_title') }}</span>
-          <t-tag class="announcement-title__count" theme="primary" variant="light" size="small">{{
-            announcements.length
-          }}</t-tag>
-        </div>
-      </template>
-      <t-list :split="false">
-        <t-list-item v-for="(item, index) in announcements" :key="index" class="announcement-item">
-          <div class="announcement-wrapper">
-            <div class="announcement-left">
-              <t-tag class="announcement-tag" theme="primary" variant="light">{{ item.type }}</t-tag>
-              <span class="announcement-text">{{ item.content }}</span>
-              <t-tag v-if="index === 0" class="announcement-new" theme="danger" variant="light" size="small">{{
-                t('dashboard.announcement_new')
-              }}</t-tag>
-              <t-link
-                v-if="item.link"
-                theme="primary"
-                hover="color"
-                class="announcement-link"
-                @click="handleAnnouncementLink(item)"
-              >
-                {{ t('dashboard.announcement_detail') }}
-              </t-link>
-            </div>
-            <div class="announcement-right">
-              <calendar-icon class="announcement-date__icon" />
-              <span class="announcement-date">{{ item.date }}</span>
-            </div>
-          </div>
-        </t-list-item>
-      </t-list>
-    </t-card>
-
     <!-- 顶部指标卡片 -->
     <top-panel class="row-container" />
     <!-- 中部图表 -->
@@ -115,7 +76,6 @@
 </template>
 
 <script setup lang="ts">
-import { CalendarIcon, NotificationIcon } from 'tdesign-icons-vue-next';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
@@ -124,7 +84,6 @@ import TopPanel from './components/TopPanel.vue';
 import MiddleChart from './components/MiddleChart.vue';
 import RankList from './components/RankList.vue';
 import { wafStatSysinfoapi } from '@/apis/stats';
-import { GetAnnouncementApi } from '@/apis/sysinfo';
 import {
   upgrade_notice_downgrade_ack_api,
   upgrade_notice_popup_shown_api,
@@ -165,9 +124,6 @@ const tips = ref([
 
 const visibleTips = computed(() => tips.value.filter((item) => item.visable));
 
-// 系统公告数据
-const announcements = ref<Record<string, any>[]>([]);
-
 // 升级须知
 const upgradeSummary = reactive({
   current_version: '',
@@ -200,10 +156,6 @@ const upgradeTipMessage = computed(() => {
 onMounted(() => {
   loadSysInfo();
   loadUpgradeSummary();
-  // 异步加载公告
-  Promise.resolve().then(() => {
-    loadAnnouncements();
-  });
 });
 
 // 引导创建网站
@@ -292,28 +244,6 @@ function handleUpgradePopupAll() {
   handleUpgradePopupClose();
   handleUpgradeNoticeOperation();
 }
-
-// 加载公告信息
-function loadAnnouncements() {
-  GetAnnouncementApi({}).then((res) => {
-    if (res.code === 0 && res.data.code === 'success') {
-      // 将data字符串转换成json对象
-      const json = JSON.parse(res.data.data);
-      announcements.value = json.announcements;
-    }
-  });
-}
-
-// 点击公告链接
-function handleAnnouncementLink(item: Record<string, any>) {
-  if (item.link) {
-    if (item.link.startsWith('/')) {
-      router.push(item.link);
-    } else {
-      window.open(item.link, '_blank', 'noopener,noreferrer');
-    }
-  }
-}
 </script>
 
 <style scoped>
@@ -338,106 +268,6 @@ function handleAnnouncementLink(item: Record<string, any>) {
 
 .tips-container .tips-link:hover {
   text-decoration: underline;
-}
-
-/* 系统公告 */
-.announcement-card {
-  padding: 8px;
-  border-radius: var(--td-radius-large);
-}
-
-.announcement-card :deep(.t-card__header) {
-  padding-bottom: 8px;
-}
-
-.announcement-card :deep(.t-card__title) {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.announcement-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.announcement-title__icon {
-  color: var(--td-brand-color);
-  font-size: 18px;
-}
-
-.announcement-title__count {
-  min-width: 20px;
-  justify-content: center;
-}
-
-.announcement-item {
-  padding: 12px 4px;
-  border-radius: 8px;
-  transition: background-color 0.2s ease;
-}
-
-.announcement-item:hover {
-  background: var(--td-bg-color-container-hover);
-}
-
-.announcement-wrapper {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-}
-
-.announcement-left {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  min-width: 0;
-}
-
-.announcement-tag {
-  margin-right: 12px;
-  min-width: 70px;
-  text-align: center;
-  flex: none;
-}
-
-.announcement-new {
-  margin-left: 8px;
-  flex: none;
-}
-
-.announcement-text {
-  font-size: 14px;
-  color: var(--td-text-color-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.announcement-right {
-  margin-left: 16px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex: none;
-}
-
-.announcement-date {
-  color: var(--td-text-color-placeholder);
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
-}
-
-.announcement-date__icon {
-  color: var(--td-text-color-placeholder);
-  font-size: 14px;
-}
-
-.announcement-link {
-  margin-left: 12px;
-  font-size: 14px;
-  flex: none;
 }
 
 .upgrade-popup__desc {

@@ -1,7 +1,5 @@
 <template>
   <t-layout class="app-layout">
-    <!-- HTTP 访问提示条：置于布局最外层，PC 与移动端都能看到 -->
-    <insecure-banner />
     <!-- PC：固定侧边栏（可折叠） -->
     <t-aside v-if="!settingStore.isMobile" :width="asideWidth" class="app-aside">
       <side-nav :collapsed="settingStore.isSidebarCompact" />
@@ -22,6 +20,9 @@
     </t-drawer>
 
     <t-layout class="app-main">
+      <!-- HTTP 访问提示条：置于内容区顶部、页头上方，宽度与内容区对齐（放在布局最外层会被
+           flex 当作与侧边栏平级的列，挤在侧边栏旁边导致位置错误） -->
+      <insecure-banner />
       <t-header class="app-header" height="56px">
         <layout-header />
       </t-header>

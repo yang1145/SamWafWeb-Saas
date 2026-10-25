@@ -32,7 +32,7 @@
           <div
             id="countContainer"
             ref="countContainer"
-            :style="{ width: `${resizeTime * 326}px`, height: `${resizeTime * 300}px`, margin: '0 auto' }"
+            :style="{ width: '100%', height: '300px' }"
           ></div>
         </div>
       </t-card>
@@ -147,6 +147,12 @@ function updateContainer() {
   } else {
     resizeTime.value = 1;
   }
+  // 容器尺寸变化后让 echarts 按新尺寸重绘（占比图宽度已改为随卡片自适应，
+  // 不重绘的话画布保持旧像素尺寸，会在窄卡片里溢出/与卡片内容重叠）
+  nextTick(() => {
+    monitorChart?.resize();
+    countChart?.resize();
+  });
 }
 
 function renderCharts() {
