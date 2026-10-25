@@ -60,6 +60,20 @@
               {{ slotProps.row.status === 1 ? t('page.oplatform.status_enabled') : t('page.oplatform.status_disabled') }}
             </t-tag>
           </template>
+          <template #permissions="slotProps">
+            <template v-if="permissionLabels(slotProps.row.permissions).length">
+              <t-tag
+                v-for="label in permissionLabels(slotProps.row.permissions)"
+                :key="label"
+                theme="primary"
+                variant="light"
+                class="perm-tag"
+              >
+                {{ label }}
+              </t-tag>
+            </template>
+            <t-tag v-else theme="default" variant="light">{{ t('page.oplatform.permissions_all') }}</t-tag>
+          </template>
           <template #rate_limit="slotProps">
             {{
               slotProps.row.rate_limit > 0
@@ -84,6 +98,18 @@
       <t-form ref="addForm" :data="formData" :rules="rules" :label-width="120" @submit="onSubmitAdd">
         <t-form-item :label="t('page.oplatform.key_name')" name="key_name">
           <t-input v-model="formData.key_name" :style="{ width: '380px' }" :placeholder="t('page.oplatform.key_name_placeholder')" />
+        </t-form-item>
+        <t-form-item :label="t('page.oplatform.permissions')" name="permissions" :help="t('page.oplatform.permissions_help')">
+          <t-select
+            v-model="formData.permissionList"
+            multiple
+            clearable
+            filterable
+            :style="{ width: '380px' }"
+            :placeholder="t('page.oplatform.permissions_placeholder')"
+          >
+            <t-option v-for="item in codeOptions" :key="item.code" :value="item.code" :label="item.name" />
+          </t-select>
         </t-form-item>
         <t-form-item :label="t('page.oplatform.rate_limit')" name="rate_limit">
           <t-input-number
@@ -128,6 +154,18 @@
             <t-radio :value="1">{{ t('page.oplatform.status_enabled') }}</t-radio>
             <t-radio :value="0">{{ t('page.oplatform.status_disabled') }}</t-radio>
           </t-radio-group>
+        </t-form-item>
+        <t-form-item :label="t('page.oplatform.permissions')" name="permissions" :help="t('page.oplatform.permissions_help')">
+          <t-select
+            v-model="formEditData.permissionList"
+            multiple
+            clearable
+            filterable
+            :style="{ width: '380px' }"
+            :placeholder="t('page.oplatform.permissions_placeholder')"
+          >
+            <t-option v-for="item in codeOptions" :key="item.code" :value="item.code" :label="item.name" />
+          </t-select>
         </t-form-item>
         <t-form-item :label="t('page.oplatform.rate_limit')" name="rate_limit">
           <t-input-number v-model="formEditData.rate_limit" :style="{ width: '380px' }" :min="0" />
@@ -204,6 +242,7 @@ import {
   oplatform_key_reset_secret_api,
 } from '@/apis/oplatform';
 import { edit_system_config_by_item_api, get_detail_by_item_api } from '@/apis/systemconfig';
+import { permission_group_codes_api } from '@/apis/permission_group';
 
 // 开放平台总开关在「参数配置」里的键名。它是个普通的系统配置项，
 // 后端 editByItem 改完会立刻 TaskLoadSetting，不需要重启。
@@ -213,6 +252,34 @@ const { t } = useI18n();
 
 const openPlatformEnabled = ref(false);
 const masterLoading = ref(false);
+
+// 权限码目录（/permission/group/codes）：Key 授权范围多选与列表标签翻译共用
+const codeOptions = ref<{ code: string; name: string }[]>([]);
+
+function fetchCodes() {
+  permission_group_codes_api()
+    .then((res) => {
+      if (res.code === 0) {
+        codeOptions.value = res.data ?? [];
+      }
+    })
+    .catch((error) => {
+      console.error('获取权限码目录失败:', error);
+    });
+}
+
+/** 权限码逗号串 -> 权限中文名标签数组（未选=全部权限） */
+function permissionLabels(permissions: string) {
+  if (!permissions) return [];
+  return permissions
+    .split(',')
+    .map((code) => code.trim())
+    .filter(Boolean)
+    .map((code) => {
+      const found = codeOptions.value.find((o) => o.code === code);
+      return found ? found.name : code;
+    });
+}
 
 // 说明条目挑的是实际会被问到的：开关没开、请求头怎么带、为什么返回不是密文、
 // 哪些接口用 Key 调不了。不是把 API 文档抄一遍。
@@ -273,6 +340,7 @@ const columns = computed<TableProps['columns']>(() => [
   { colKey: 'key_name', title: t('page.oplatform.key_name'), width: 150 },
   { colKey: 'api_key', title: 'API Key', width: 240 },
   { colKey: 'status', title: t('page.oplatform.status'), width: 100 },
+  { colKey: 'permissions', title: t('page.oplatform.permissions'), width: 200 },
   { colKey: 'rate_limit', title: t('page.oplatform.rate_limit'), width: 120 },
   { colKey: 'ip_whitelist', title: t('page.oplatform.ip_whitelist'), width: 160, ellipsis: true },
   { colKey: 'call_count', title: t('page.oplatform.call_count'), width: 100 },
@@ -294,6 +362,7 @@ const formData = ref<Record<string, any>>({
   rate_limit: 0,
   ip_whitelist: '',
   expire_time: '',
+  permissionList: [] as string[],
 });
 const formEditData = ref<Record<string, any>>({
   id: '',
@@ -303,6 +372,7 @@ const formEditData = ref<Record<string, any>>({
   rate_limit: 0,
   ip_whitelist: '',
   expire_time: '',
+  permissionList: [] as string[],
 });
 
 const rules: FormProps['rules'] = {
@@ -312,6 +382,7 @@ const rules: FormProps['rules'] = {
 onMounted(() => {
   getList();
   fetchMasterSwitch();
+  fetchCodes();
 });
 
 function getList() {
@@ -333,14 +404,34 @@ function getList() {
     });
 }
 
+/** 后端 permissions 是逗号分隔串，表单里换成数组给多选下拉 */
+function toKeyFormModel(d: Record<string, any>) {
+  const permissions = typeof d.permissions === 'string' ? d.permissions : '';
+  return {
+    ...d,
+    permissionList: permissions
+      .split(',')
+      .map((code) => code.trim())
+      .filter(Boolean),
+  };
+}
+
+/** 提交契约：permissions 传逗号分隔权限码字符串，空串=全部权限 */
+function toKeySubmitPayload(form: Record<string, any>) {
+  return {
+    ...form,
+    permissions: (form.permissionList ?? []).join(','),
+  };
+}
+
 function handleAdd() {
-  formData.value = { key_name: '', remark: '', rate_limit: 0, ip_whitelist: '', expire_time: '' };
+  formData.value = { key_name: '', remark: '', rate_limit: 0, ip_whitelist: '', expire_time: '', permissionList: [] };
   addFormVisible.value = true;
 }
 
 const onSubmitAdd: FormProps['onSubmit'] = ({ validateResult }) => {
   if (validateResult !== true) return;
-  oplatform_key_add_api(formData.value).then((res) => {
+  oplatform_key_add_api(toKeySubmitPayload(formData.value)).then((res) => {
     if (res && res.code === 0) {
       addFormVisible.value = false;
       newSecret.value = res.data.api_key;
@@ -357,16 +448,16 @@ function handleEdit(slotProps: { row: Record<string, any> }) {
   const { row } = slotProps;
   oplatform_key_detail_api({ id: row.id }).then((res) => {
     if (res && res.code === 0) {
-      const d = res.data;
-      formEditData.value = {
-        id: d.id,
-        key_name: d.key_name,
-        status: d.status,
-        remark: d.remark,
-        rate_limit: d.rate_limit,
-        ip_whitelist: d.ip_whitelist,
-        expire_time: d.expire_time,
-      };
+      formEditData.value = toKeyFormModel({
+        id: res.data.id,
+        key_name: res.data.key_name,
+        status: res.data.status,
+        remark: res.data.remark,
+        rate_limit: res.data.rate_limit,
+        ip_whitelist: res.data.ip_whitelist,
+        expire_time: res.data.expire_time,
+        permissions: res.data.permissions,
+      });
       editFormVisible.value = true;
     }
   });
@@ -374,7 +465,7 @@ function handleEdit(slotProps: { row: Record<string, any> }) {
 
 const onSubmitEdit: FormProps['onSubmit'] = ({ validateResult }) => {
   if (validateResult !== true) return;
-  oplatform_key_edit_api(formEditData.value).then((res) => {
+  oplatform_key_edit_api(toKeySubmitPayload(formEditData.value)).then((res) => {
     if (res && res.code === 0) {
       MessagePlugin.success(t('page.oplatform.edit_success'));
       editFormVisible.value = false;
@@ -388,6 +479,7 @@ const onSubmitEdit: FormProps['onSubmit'] = ({ validateResult }) => {
 function handleToggleStatus(slotProps: { row: Record<string, any> }) {
   const { row } = slotProps;
   const newStatus = row.status === 1 ? 0 : 1;
+  // 后端 edit 是整体覆盖式提交：启用/停用必须把授权范围原样带回，否则会被清成"全部权限"
   oplatform_key_edit_api({
     id: row.id,
     key_name: row.key_name,
@@ -396,6 +488,7 @@ function handleToggleStatus(slotProps: { row: Record<string, any> }) {
     rate_limit: row.rate_limit,
     ip_whitelist: row.ip_whitelist,
     expire_time: row.expire_time,
+    permissions: row.permissions ?? '',
   }).then((res) => {
     if (res && res.code === 0) {
       MessagePlugin.success(newStatus === 1 ? t('page.oplatform.enable_success') : t('page.oplatform.disable_success'));
@@ -478,6 +571,10 @@ function copyText(text: string) {
 
 .op-master__t {
   font-weight: 500;
+}
+
+.perm-tag {
+  margin: 2px 4px 2px 0;
 }
 
 .left-operation-container {

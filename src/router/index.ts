@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router';
 import { markRaw } from 'vue';
 import { DashboardIcon } from 'tdesign-icons-vue-next';
-import wafRoutes from './modules/waf';
+import wafRoutes, { setupPlatformMenuGate } from './modules/waf';
 
 export const routes: RouteRecordRaw[] = [
   {
@@ -60,3 +60,6 @@ const router = createRouter({
 });
 
 export default router;
+
+// 租户菜单按平台角色显隐的探针门控（挂在路由守卫链上，登录后静默探测一次）
+setupPlatformMenuGate(router);

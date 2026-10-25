@@ -33,6 +33,10 @@
           <template #role="{ row }">
             <t-tag theme="primary" variant="light">{{ roleLabel(row.role) }}</t-tag>
           </template>
+          <template #group_name="{ row }">
+            <t-tag v-if="row.group_name" theme="warning" variant="light">{{ row.group_name }}</t-tag>
+            <span v-else>-</span>
+          </template>
           <template #op="slotProps">
             <a class="t-button-link" @click="handleClickResetPwd(slotProps)">{{ t('page.account.reset_password') }}</a>
             <a class="t-button-link" @click="handleClickResetOtp(slotProps)">{{ t('page.account.reset_otp') }}</a>
@@ -61,6 +65,11 @@
             <t-option v-for="(item, index) in roleType" :key="index" :value="item.value" :label="item.label">
               {{ item.label }}
             </t-option>
+          </t-select>
+        </t-form-item>
+        <t-form-item :label="t('page.account.permission_group')" name="group_id">
+          <t-select v-model="formData.group_id" clearable filterable :style="{ width: '480px' }" :placeholder="t('page.account.group_unbind')">
+            <t-option v-for="item in groupOptions" :key="item.id" :value="item.id" :label="item.group_name" />
           </t-select>
         </t-form-item>
         <t-form-item :label="t('page.account.login_password')" name="login_password">
@@ -110,6 +119,11 @@
             <t-option v-for="(item, index) in roleType" :key="index" :value="item.value" :label="item.label">
               {{ item.label }}
             </t-option>
+          </t-select>
+        </t-form-item>
+        <t-form-item :label="t('page.account.permission_group')" name="group_id">
+          <t-select v-model="formEditData.group_id" clearable filterable :style="{ width: '480px' }" :placeholder="t('page.account.group_unbind')">
+            <t-option v-for="item in groupOptions" :key="item.id" :value="item.id" :label="item.group_name" />
           </t-select>
         </t-form-item>
         <t-form-item :label="t('common.status')" name="status">
@@ -206,6 +220,7 @@ import {
   account_reset_2fa_api,
   account_reset_pwd_api,
 } from '@/apis/account';
+import { permission_group_options_api } from '@/apis/permission_group';
 
 const { t } = useI18n();
 
@@ -213,6 +228,7 @@ const INITIAL_DATA = {
   login_account: '',
   login_password: '',
   role: '',
+  group_id: '',
   status: 1,
   remarks: '',
 };
@@ -264,16 +280,32 @@ function roleLabel(v: string) {
   return found ? found.label : v || '-';
 }
 
+// 权限组下拉（/permission/group/options）：绑组后按组权限码判定，清空=不绑定走旧角色
+const groupOptions = ref<Record<string, any>[]>([]);
+
+function fetchGroupOptions() {
+  permission_group_options_api()
+    .then((res) => {
+      if (res.code === 0) {
+        groupOptions.value = res.data ?? [];
+      }
+    })
+    .catch((e: Error) => {
+      console.log(e);
+    });
+}
+
 const dataLoading = ref(false);
 const data = ref<Record<string, any>[]>([]);
 const selectedRowKeys = ref<(string | number)[]>([]);
 const rowKey = 'code';
 
 const columns = computed<TableProps['columns']>(() => [
-  { title: t('page.account.login_account_label'), align: 'left', width: 250, ellipsis: true, colKey: 'login_account' },
-  { title: t('page.account.role'), align: 'left', width: 250, ellipsis: true, colKey: 'role', cell: 'role' },
-  { title: t('common.remarks'), width: 200, ellipsis: true, colKey: 'remarks' },
-  { title: t('common.create_time'), width: 200, ellipsis: true, colKey: 'create_time' },
+  { title: t('page.account.login_account_label'), align: 'left', width: 200, ellipsis: true, colKey: 'login_account' },
+  { title: t('page.account.role'), align: 'left', width: 160, ellipsis: true, colKey: 'role', cell: 'role' },
+  { title: t('page.account.permission_group'), align: 'left', width: 160, ellipsis: true, colKey: 'group_name' },
+  { title: t('common.remarks'), width: 180, ellipsis: true, colKey: 'remarks' },
+  { title: t('common.create_time'), width: 180, ellipsis: true, colKey: 'create_time' },
   { align: 'left', width: 200, colKey: 'op', title: t('common.op') },
 ]);
 
@@ -298,6 +330,7 @@ const confirmBody = computed(() => {
 
 onMounted(() => {
   getList('');
+  fetchGroupOptions();
 });
 
 function getList(keyword?: string) {
@@ -481,7 +514,8 @@ function getDetail(id: string | number) {
   account_detail_api({ id })
     .then((res) => {
       if (res.code === 0) {
-        formEditData.value = { ...res.data };
+        // 未绑定权限组时后端返回空，归一成 '' 让下拉走占位文案
+        formEditData.value = { ...res.data, group_id: res.data?.group_id || '' };
       }
     })
     .catch((e: Error) => {

@@ -9,7 +9,10 @@ export function account_list_api(data: Record<string, any>) {
   });
 }
 
-/** 添加账号 */
+/**
+ * 添加账号
+ * 请求体含 group_id（权限组ID，空=不绑定走旧四角色判定），见账号页表单
+ */
 export function account_add_api(data: Record<string, any>) {
   return request({
     url: '/account/add',
@@ -18,7 +21,10 @@ export function account_add_api(data: Record<string, any>) {
   });
 }
 
-/** 编辑账号 */
+/**
+ * 编辑账号
+ * 请求体含 group_id（空=解绑并回落旧四角色判定；绑定变化会强制该账号下线）
+ */
 export function account_edit_api(data: Record<string, any>) {
   return request({
     url: '/account/edit',

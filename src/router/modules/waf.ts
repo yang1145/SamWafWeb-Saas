@@ -1,5 +1,5 @@
-import { markRaw } from 'vue';
-import type { RouteRecordRaw } from 'vue-router';
+import { markRaw, reactive } from 'vue';
+import type { Router, RouteRecordRaw } from 'vue-router';
 import {
   ApplicationIcon,
   CloudIcon,
@@ -12,6 +12,8 @@ import {
   UserCircleIcon,
   UsergroupIcon,
 } from 'tdesign-icons-vue-next';
+
+import { tenant_probe_access_api } from '@/apis/tenant';
 
 /**
  * WAF 业务路由（挂载在根布局 '/' 下）
@@ -279,6 +281,12 @@ const wafRoutes: RouteRecordRaw[] = [
         meta: { title: 'menu.account.account_list_title' },
       },
       {
+        path: 'PermissionGroup',
+        name: 'PermissionGroup',
+        component: () => import('@/pages/waf/permission_group/index.vue'),
+        meta: { title: 'menu.account.permission_group_title' },
+      },
+      {
         path: 'AccountLog',
         name: 'AccountLog',
         component: () => import('@/pages/waf/accountlog/index.vue'),
@@ -404,6 +412,15 @@ const wafRoutes: RouteRecordRaw[] = [
         component: () => import('@/pages/waf/sqlquery/index.vue'),
         meta: { title: 'menu.system.sql_query_title' },
       },
+      {
+        path: 'Tenant',
+        name: 'Tenant',
+        component: () => import('@/pages/waf/tenant/index.vue'),
+        // 仅平台角色可见（superAdmin / 带 platform:admin 权限的账号）：
+        // meta 用 reactive 包装，探针结果改 hidden 后侧边菜单能实时刷新；
+        // 默认先隐藏（fail-closed，与后端权限门同口径），探针通过后再放出
+        meta: reactive({ title: 'menu.system.tenant_title', platformOnly: true, hidden: true }),
+      },
     ],
   },
   {
@@ -455,5 +472,51 @@ const wafRoutes: RouteRecordRaw[] = [
     ],
   },
 ];
+
+/**
+ * 租户菜单显隐门控。
+ *
+ * 背景：前端此前没有按角色显隐菜单的机制（菜单全量静态展示，越权由后端 403 兜底），
+ * 租户管理接口挂在平台权限门（RequirePermission(platform:admin, systemAdmin)）之后，
+ * 普通租户账号不该看到这个菜单，所以这里补一个最小实现：
+ * 登录后静默探测一次 tenant/list（平台角色才放行），通过才把菜单 hidden 打开。
+ *
+ * 设计要点：
+ *   - fail-closed：路由默认 hidden，探测失败/403 一律保持隐藏；
+ *   - 探测请求带 background，非平台账号的 403 不弹通知只静默；
+ *   - 登出/被踢回登录页时复位探针并重新隐藏，换账号登录后重新判定；
+ *   - tenant 路由 meta 是 reactive 的，MenuContent 的 computed 读取 hidden，
+ *     探针翻转后侧边菜单会实时刷新，无需整页刷新。
+ */
+export function setupPlatformMenuGate(router: Router) {
+  const tenantRoute = wafRoutes
+    .find((r) => r.path === 'sys')
+    ?.children?.find((r) => r.name === 'Tenant');
+  if (!tenantRoute) return;
+
+  let probed = false;
+
+  router.afterEach(() => {
+    const toPath = router.currentRoute.value.path;
+    if (toPath === '/login') {
+      // 登出/令牌失效回登录页：复位探针，避免换账号登录后沿用上一次的判定
+      probed = false;
+      (tenantRoute.meta as { hidden: boolean }).hidden = true;
+      return;
+    }
+    if (probed) return;
+    if (!localStorage.getItem('access_token')) return;
+    probed = true;
+    tenant_probe_access_api()
+      .then((res) => {
+        if (res.code === 0) {
+          (tenantRoute.meta as { hidden: boolean }).hidden = false;
+        }
+      })
+      .catch(() => {
+        // 探测失败保持隐藏（fail-closed），不影响其它功能
+      });
+  });
+}
 
 export default wafRoutes;
