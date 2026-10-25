@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router';
 import { markRaw } from 'vue';
 import { DashboardIcon } from 'tdesign-icons-vue-next';
-import wafRoutes, { setupPlatformMenuGate } from './modules/waf';
+import wafRoutes, { setupPermissionMenuGate } from './modules/waf';
 
 export const routes: RouteRecordRaw[] = [
   {
@@ -25,19 +25,19 @@ export const routes: RouteRecordRaw[] = [
             path: 'base',
             name: 'DashboardBase',
             component: () => import('@/pages/dashboard/base/index.vue'),
-            meta: { title: 'menu.dashboard.dashboard_title' },
+            meta: { title: 'menu.dashboard.dashboard_title', permission: 'dashboard:view' },
           },
           {
             path: 'stats',
             name: 'DashboardStats',
             component: () => import('@/pages/dashboard/stats/index.vue'),
-            meta: { title: 'menu.dashboard.stats_title' },
+            meta: { title: 'menu.dashboard.stats_title', permission: 'dashboard:view' },
           },
           {
             path: 'overview',
             name: 'DashboardOverview',
             component: () => import('@/pages/dashboard/overview/index.vue'),
-            meta: { title: 'menu.dashboard.overview_title' },
+            meta: { title: 'menu.dashboard.overview_title', permission: 'dashboard:view' },
           },
         ],
       },
@@ -61,5 +61,5 @@ const router = createRouter({
 
 export default router;
 
-// 租户菜单按平台角色显隐的探针门控（挂在路由守卫链上，登录后静默探测一次）
-setupPlatformMenuGate(router);
+// 权限菜单门控：登录后按权限码探针裁剪菜单并拦截无权导航（SaaS 租户权限差异化）
+setupPermissionMenuGate(router);

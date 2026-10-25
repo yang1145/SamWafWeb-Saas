@@ -20,6 +20,8 @@ import { computed, type Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { RouteRecordRaw } from 'vue-router';
 
+import { usePermissionStore } from '@/store/modules/permission';
+
 export interface MenuNode {
   path: string;
   title: string;
@@ -34,13 +36,18 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const permissionStore = usePermissionStore();
 
 function joinPath(base: string, path: string): string {
   if (path.startsWith('/')) return path;
   return `${base.replace(/\/$/, '')}/${path}`;
 }
 
-/** 把路由记录转换为菜单节点，过滤 hidden 与无标题项 */
+/**
+ * 把路由记录转换为菜单节点，过滤 hidden / 无标题 / 无权限项。
+ * 权限判定走权限 store（登录后探针填充，响应式）：探测未完成或无权都隐藏
+ * （fail-closed）。组内全部子项被过滤后整组丢弃（否则组会退化成叶子项）。
+ */
 function toMenuNodes(items: (RouteRecordRaw | MenuNode)[], base: string): MenuNode[] {
   return items
     .map((item) => {
@@ -49,13 +56,22 @@ function toMenuNodes(items: (RouteRecordRaw | MenuNode)[], base: string): MenuNo
       }
       const route = item as RouteRecordRaw;
       if (route.meta?.hidden || !route.meta?.title) return null;
+      if (!permissionStore.has(route.meta.permission)) return null;
       const fullPath = joinPath(base, route.path);
-      const children = route.children?.length ? toMenuNodes(route.children, fullPath) : undefined;
+      if (route.children?.length) {
+        const children = toMenuNodes(route.children, fullPath);
+        if (!children.length) return null; // 组内子项全被过滤（含权限裁剪）：整组不渲染
+        return {
+          path: fullPath,
+          title: route.meta.title,
+          icon: route.meta.icon,
+          children,
+        };
+      }
       return {
         path: fullPath,
         title: route.meta.title,
         icon: route.meta.icon,
-        children: children && children.length ? children : undefined,
       };
     })
     .filter((item): item is MenuNode => item !== null);

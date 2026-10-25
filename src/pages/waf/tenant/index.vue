@@ -33,6 +33,9 @@
           :loading="dataLoading"
           @page-change="rehandlePageChange"
         >
+          <template #plan="{ row }">
+            {{ planLabel(row.plan_code) }}
+          </template>
           <template #status="{ row }">
             <t-tag :theme="statusTheme(row.status)">{{ statusLabel(row.status) }}</t-tag>
           </template>
@@ -71,12 +74,32 @@
             :placeholder="t('common.placeholder') + t('page.tenant.tenant_name')"
           ></t-input>
         </t-form-item>
+        <t-form-item :label="t('page.tenant.plan_code')" name="plan_code">
+          <div>
+            <t-select
+              v-model="formData.plan_code"
+              clearable
+              filterable
+              :style="{ width: '480px' }"
+              :loading="planLoading"
+              :placeholder="t('page.tenant.plan_placeholder')"
+            >
+              <t-option
+                v-for="item in planOptions"
+                :key="item.plan_code"
+                :value="item.plan_code"
+                :label="`${item.plan_name} (${item.plan_code})`"
+              />
+            </t-select>
+            <div v-if="selectedPlanHint" class="plan-hint">{{ selectedPlanHint }}</div>
+          </div>
+        </t-form-item>
         <t-form-item :label="t('page.tenant.max_hosts')" name="max_hosts">
           <t-input-number
             v-model="formData.max_hosts"
             :style="{ width: '480px' }"
             :min="0"
-            :placeholder="t('page.tenant.quota_placeholder')"
+            :placeholder="t('page.tenant.quota_plan_placeholder')"
           ></t-input-number>
         </t-form-item>
         <t-form-item :label="t('page.tenant.max_accounts')" name="max_accounts">
@@ -84,7 +107,7 @@
             v-model="formData.max_accounts"
             :style="{ width: '480px' }"
             :min="0"
-            :placeholder="t('page.tenant.quota_placeholder')"
+            :placeholder="t('page.tenant.quota_plan_placeholder')"
           ></t-input-number>
         </t-form-item>
         <t-form-item :label="t('page.tenant.expire_time')" name="expire_time">
@@ -102,7 +125,7 @@
             v-model="formData.grace_days"
             :style="{ width: '480px' }"
             :min="0"
-            :placeholder="t('page.tenant.grace_days_placeholder')"
+            :placeholder="t('page.tenant.quota_plan_placeholder')"
           ></t-input-number>
         </t-form-item>
         <t-form-item :label="t('page.tenant.admin_account')" name="admin_account">
@@ -150,6 +173,26 @@
             :style="{ width: '480px' }"
             :placeholder="t('common.placeholder') + t('page.tenant.tenant_name')"
           ></t-input>
+        </t-form-item>
+        <t-form-item :label="t('page.tenant.plan_code')" name="plan_code">
+          <div>
+            <t-select
+              v-model="formEditData.plan_code"
+              clearable
+              filterable
+              :style="{ width: '480px' }"
+              :loading="planLoading"
+              :placeholder="t('page.tenant.plan_placeholder')"
+            >
+              <t-option
+                v-for="item in planOptions"
+                :key="item.plan_code"
+                :value="item.plan_code"
+                :label="`${item.plan_name} (${item.plan_code})`"
+              />
+            </t-select>
+            <div class="plan-hint">{{ formEditData.plan_code ? selectedEditPlanHint : '' }}{{ t('page.tenant.plan_switch_hint') }}</div>
+          </div>
         </t-form-item>
         <t-form-item :label="t('common.status')" name="status">
           <t-radio-group v-model="formEditData.status">
@@ -246,6 +289,7 @@ import { MessagePlugin } from 'tdesign-vue-next';
 import type { FormProps, PageInfo, TableProps } from 'tdesign-vue-next';
 
 import { tenant_add_api, tenant_del_api, tenant_detail_api, tenant_edit_api, tenant_list_api, tenant_renew_api } from '@/apis/tenant';
+import { plan_list_api } from '@/apis/plan';
 
 const { t } = useI18n();
 
@@ -257,13 +301,16 @@ const TENANT_STATUS = {
   CANCELLED: -1,
 } as const;
 
+// 配额/宽限默认 null（后端指针语义：nil=取套餐默认值；显式 0=不限）。
+// 选了套餐留空即跟随套餐，未选套餐留空等同 0=不限。
 const INITIAL_ADD_DATA = {
   tenant_id: '',
   tenant_name: '',
-  max_hosts: 0,
-  max_accounts: 0,
+  plan_code: '',
+  max_hosts: null as number | null,
+  max_accounts: null as number | null,
   expire_time: '',
-  grace_days: 0,
+  grace_days: null as number | null,
   admin_account: '',
   admin_password: '',
   remarks: '',
@@ -337,14 +384,67 @@ function quotaText(maxHosts: number, maxAccounts: number) {
   return `${t('page.tenant.max_hosts')} ${hosts} / ${t('page.tenant.max_accounts')} ${accounts}`;
 }
 
+/** 启用中的套餐选项（开通/编辑表单的套餐下拉） */
+const planOptions = ref<Record<string, any>[]>([]);
+const planLoading = ref(false);
+
+function fetchPlanOptions() {
+  planLoading.value = true;
+  plan_list_api({ pageIndex: 1, pageSize: 100, status: 1 })
+    .then((res) => {
+      if (res.code === 0) {
+        planOptions.value = res.data?.list ?? [];
+      }
+    })
+    .catch((e: Error) => {
+      console.log(e);
+    })
+    .finally(() => {
+      planLoading.value = false;
+    });
+}
+
+/** 当前表单选中套餐的默认值提示（站点/账号/宽限） */
+const selectedPlanHint = computed(() => {
+  const code = formData.value.plan_code;
+  if (!code) return '';
+  const plan = planOptions.value.find((p) => p.plan_code === code);
+  if (!plan) return '';
+  const unlimited = t('page.tenant.unlimited');
+  const hosts = plan.max_hosts > 0 ? plan.max_hosts : unlimited;
+  const accounts = plan.max_accounts > 0 ? plan.max_accounts : unlimited;
+  const grace = plan.grace_days > 0 ? plan.grace_days + ' ' + t('page.tenant.days') : t('page.tenant.no_grace');
+  return t('page.tenant.plan_default_hint', { hosts, accounts, grace });
+});
+
+/** 编辑表单选中套餐的默认值提示 */
+const selectedEditPlanHint = computed(() => {
+  const code = formEditData.value.plan_code;
+  if (!code) return '';
+  const plan = planOptions.value.find((p) => p.plan_code === code);
+  if (!plan) return '';
+  const unlimited = t('page.tenant.unlimited');
+  const hosts = plan.max_hosts > 0 ? plan.max_hosts : unlimited;
+  const accounts = plan.max_accounts > 0 ? plan.max_accounts : unlimited;
+  const grace = plan.grace_days > 0 ? plan.grace_days + ' ' + t('page.tenant.days') : t('page.tenant.no_grace');
+  return t('page.tenant.plan_default_hint', { hosts, accounts, grace });
+});
+
+function planLabel(planCode?: string) {
+  if (!planCode) return '-';
+  const plan = planOptions.value.find((p) => p.plan_code === planCode);
+  return plan ? `${plan.plan_name} (${plan.plan_code})` : planCode;
+}
+
 const dataLoading = ref(false);
 const data = ref<Record<string, any>[]>([]);
 
 const columns = computed<TableProps['columns']>(() => [
-  { title: t('page.tenant.tenant_id'), align: 'left', width: 140, ellipsis: true, colKey: 'tenant_id' },
-  { title: t('page.tenant.tenant_name'), align: 'left', width: 180, ellipsis: true, colKey: 'tenant_name' },
+  { title: t('page.tenant.tenant_id'), align: 'left', width: 130, ellipsis: true, colKey: 'tenant_id' },
+  { title: t('page.tenant.tenant_name'), align: 'left', width: 150, ellipsis: true, colKey: 'tenant_name' },
+  { title: t('page.tenant.plan_code'), align: 'left', width: 130, ellipsis: true, colKey: 'plan' },
   { title: t('common.status'), align: 'left', width: 90, colKey: 'status' },
-  { title: t('page.tenant.quota'), align: 'left', width: 240, colKey: 'quota' },
+  { title: t('page.tenant.quota'), align: 'left', width: 230, colKey: 'quota' },
   { title: t('page.tenant.expire_time'), align: 'left', width: 170, ellipsis: true, colKey: 'expire_time' },
   { title: t('page.tenant.grace_days'), align: 'left', width: 100, colKey: 'grace_days' },
   { align: 'left', width: 170, colKey: 'op', title: t('common.op') },
@@ -371,6 +471,7 @@ const confirmBody = computed(() => {
 });
 
 onMounted(() => {
+  fetchPlanOptions();
   getList('');
 });
 
@@ -413,14 +514,22 @@ function rehandlePageChange(curr: PageInfo) {
 }
 
 function handleAdd() {
+  fetchPlanOptions();
   addFormVisible.value = true;
-  formData.value = { ...INITIAL_ADD_DATA };
+  formData.value = { ...INITIAL_ADD_DATA, max_hosts: null, max_accounts: null, grace_days: null };
 }
 
 const onSubmit: FormProps['onSubmit'] = ({ firstError }) => {
   if (!firstError) {
-    // 到期时间留空 = 永久
-    const payload = { ...formData.value, expire_time: formData.value.expire_time || '' };
+    // 到期时间留空 = 永久；配额留空(null) = 取套餐默认值（后端指针语义）
+    const payload = {
+      ...formData.value,
+      expire_time: formData.value.expire_time || '',
+      plan_code: formData.value.plan_code || '',
+      max_hosts: formData.value.max_hosts ?? null,
+      max_accounts: formData.value.max_accounts ?? null,
+      grace_days: formData.value.grace_days ?? null,
+    };
     tenant_add_api(payload)
       .then((res) => {
         if (res.code === 0) {
@@ -442,6 +551,7 @@ const onSubmit: FormProps['onSubmit'] = ({ firstError }) => {
 
 function handleClickEdit(e: { row: Record<string, any> }) {
   const { id } = e.row;
+  fetchPlanOptions();
   editFormVisible.value = true;
   getDetail(id);
 }
@@ -449,11 +559,13 @@ function handleClickEdit(e: { row: Record<string, any> }) {
 const onSubmitEdit: FormProps['onSubmit'] = ({ firstError }) => {
   if (!firstError) {
     const d = formEditData.value;
-    // 后端指针字段语义：null=不修改；expire_time 指向空串=永久。
+    // 后端指针字段语义：null=不修改（换套餐时=重置为新套餐默认值）；expire_time 指向空串=永久。
+    // plan_code 必须随编辑带上——后端以「是否变化」判定换套餐并同步权限组，漏传等于清空套餐。
     // 清空数字输入视为不修改（想改成 0=不限 就显式填 0）。
     const payload = {
       tenant_id: d.tenant_id,
       tenant_name: d.tenant_name,
+      plan_code: d.plan_code || '',
       status: d.status,
       max_hosts: d.max_hosts === undefined || d.max_hosts === null ? null : d.max_hosts,
       max_accounts: d.max_accounts === undefined || d.max_accounts === null ? null : d.max_accounts,
@@ -592,5 +704,13 @@ function getDetail(id: string | number) {
 
 .t-button + .t-button {
   margin-left: 8px;
+}
+
+.plan-hint {
+  width: 480px;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--td-text-color-placeholder);
 }
 </style>

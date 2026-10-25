@@ -38,8 +38,10 @@
             <span v-else>-</span>
           </template>
           <template #op="slotProps">
-            <a class="t-button-link" @click="handleClickResetPwd(slotProps)">{{ t('page.account.reset_password') }}</a>
-            <a class="t-button-link" @click="handleClickResetOtp(slotProps)">{{ t('page.account.reset_otp') }}</a>
+            <!-- 重置密码/重置2FA 后端仅超管可操作（前者需超管密码、后者按用户名全局删），
+                 租户管理员不显示这两个入口，删除本租户普通账号/编辑对租户开放 -->
+            <a v-if="permissionStore.isPlatform" class="t-button-link" @click="handleClickResetPwd(slotProps)">{{ t('page.account.reset_password') }}</a>
+            <a v-if="permissionStore.isPlatform" class="t-button-link" @click="handleClickResetOtp(slotProps)">{{ t('page.account.reset_otp') }}</a>
             <a class="t-button-link" @click="handleClickEdit(slotProps)">{{ t('common.edit') }}</a>
             <a class="t-button-link" @click="handleClickDelete(slotProps)">{{ t('common.delete') }}</a>
           </template>
@@ -61,11 +63,13 @@
           ></t-input>
         </t-form-item>
         <t-form-item :label="t('page.account.role')" name="role">
-          <t-select v-model="formData.role" clearable :style="{ width: '480px' }">
-            <t-option v-for="(item, index) in roleType" :key="index" :value="item.value" :label="item.label">
+          <!-- 平台侧可选旧四角色；租户管理员建号后端强制 tenantAdmin（防提权），这里锁定展示 -->
+          <t-select v-model="formData.role" :disabled="!permissionStore.isPlatform" :style="{ width: '480px' }">
+            <t-option v-for="item in roleType" :key="item.value" :value="item.value" :label="item.label">
               {{ item.label }}
             </t-option>
           </t-select>
+          <div v-if="!permissionStore.isPlatform" class="form-hint">{{ t('page.account.tenant_role_hint') }}</div>
         </t-form-item>
         <t-form-item :label="t('page.account.permission_group')" name="group_id">
           <t-select v-model="formData.group_id" clearable filterable :style="{ width: '480px' }" :placeholder="t('page.account.group_unbind')">
@@ -115,8 +119,9 @@
           ></t-input>
         </t-form-item>
         <t-form-item :label="t('page.account.role')" name="role">
-          <t-select v-model="formEditData.role" clearable :style="{ width: '480px' }">
-            <t-option v-for="(item, index) in roleType" :key="index" :value="item.value" :label="item.label">
+          <!-- 角色变更后端仅超管可为：租户管理员侧锁定只读展示；编辑用全量角色集（含 tenantAdmin） -->
+          <t-select v-model="formEditData.role" :disabled="!permissionStore.isPlatform" :style="{ width: '480px' }">
+            <t-option v-for="item in allRoleLabels" :key="item.value" :value="item.value" :label="item.label">
               {{ item.label }}
             </t-option>
           </t-select>
@@ -221,8 +226,12 @@ import {
   account_reset_pwd_api,
 } from '@/apis/account';
 import { permission_group_options_api } from '@/apis/permission_group';
+import { usePermissionStore } from '@/store/modules/permission';
 
 const { t } = useI18n();
+// 平台/租户视角（登录后权限探针）：平台侧可建旧四角色账号并用超管密码重置；
+// 租户管理员仅可管理本租户账号（后端按请求租户收敛数据面），角色强制 tenantAdmin
+const permissionStore = usePermissionStore();
 
 const INITIAL_DATA = {
   login_account: '',
@@ -267,16 +276,27 @@ const resetPwdRules: FormProps['rules'] = {
   ],
 };
 
-const roleType = computed(() => [
+// 全部角色的展示映射（表格标签 + 编辑弹窗下拉）：含租户管理员——多租户下
+// 租户内账号都是 tenantAdmin 角色
+const allRoleLabels = computed(() => [
   { label: t('page.account.role_super_admin'), value: 'superAdmin' },
   { label: t('page.account.role_system_admin'), value: 'systemAdmin' },
   { label: t('page.account.role_security_admin'), value: 'securityAdmin' },
   { label: t('page.account.role_audit_admin'), value: 'auditAdmin' },
+  { label: t('page.account.role_tenant_admin'), value: 'tenantAdmin' },
 ]);
+
+// 新建弹窗的角色可选项：平台侧给旧四角色（租户管理员账号由「租户管理」开通流程创建）；
+// 租户管理员建号后端强制 tenantAdmin（防提权），这里只给锁定项
+const roleType = computed(() =>
+  permissionStore.isPlatform
+    ? allRoleLabels.value.filter((o) => o.value !== 'tenantAdmin')
+    : allRoleLabels.value.filter((o) => o.value === 'tenantAdmin'),
+);
 
 // 列表里存的是 superAdmin 这类原始值，直接显示用户看不懂，转成配置里的中文名
 function roleLabel(v: string) {
-  const found = roleType.value.find((o) => o.value === v);
+  const found = allRoleLabels.value.find((o) => o.value === v);
   return found ? found.label : v || '-';
 }
 
@@ -298,7 +318,7 @@ function fetchGroupOptions() {
 const dataLoading = ref(false);
 const data = ref<Record<string, any>[]>([]);
 const selectedRowKeys = ref<(string | number)[]>([]);
-const rowKey = 'code';
+const rowKey = 'id';
 
 const columns = computed<TableProps['columns']>(() => [
   { title: t('page.account.login_account_label'), align: 'left', width: 200, ellipsis: true, colKey: 'login_account' },
@@ -378,7 +398,8 @@ function handleClickEdit(e: { row: Record<string, any> }) {
 
 function handleAddAccount() {
   addFormVisible.value = true;
-  formData.value = { ...INITIAL_DATA };
+  // 租户管理员建号：角色预置并锁定 tenantAdmin；平台侧保持可选
+  formData.value = { ...INITIAL_DATA, role: permissionStore.isPlatform ? '' : 'tenantAdmin' };
 }
 
 function handleClickResetPwd(e: { row: Record<string, any> }) {
@@ -552,5 +573,13 @@ function getDetailModifyPwd(id: string | number) {
 
 .t-button + .t-button {
   margin-left: 8px;
+}
+
+.form-hint {
+  width: 480px;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--td-text-color-placeholder);
 }
 </style>

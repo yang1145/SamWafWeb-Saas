@@ -446,6 +446,8 @@ export default {
       monitor_title: "系统监控",
       sql_query_title: "SQL查询工具",
       tenant_title: "租户管理",
+      plan_title: "套餐管理",
+
     },
     notify: {
       parent_title: "通知管理",
@@ -710,6 +712,8 @@ export default {
       admin_delete_warning: "默认管理帐号不允许删除",
       permission_group: "权限组",
       group_unbind: "不绑定（走旧角色）",
+      role_tenant_admin: "租户管理员",
+      tenant_role_hint: "租户管理员创建的账号归属本租户，角色固定为租户管理员",
     },
     permission_group: {
       create_group: "新建权限组",
@@ -761,6 +765,23 @@ export default {
       add_days_required: "请输入大于 0 的顺延天数",
       renew_date_placeholder: "绝对到期时间",
       renew_date_required: "请选择到期日期",
+      plan_code: "套餐",
+      plan_placeholder: "选择套餐（留空 = 不绑定套餐）",
+      plan_default_hint: "该套餐默认：站点 {hosts} / 账号 {accounts} / 宽限 {grace}",
+      plan_switch_hint: "切换套餐将把该租户管理员的权限集重写为新套餐的授权集；下方留空的配额/宽限将重置为新套餐默认值。",
+      quota_plan_placeholder: "留空 = 取套餐默认值，0 = 不限",
+    },
+    plan: {
+      add_plan: "新建套餐",
+      plan_code: "套餐码",
+      plan_code_placeholder: "小写字母、数字、_ 或 -，3-32 位",
+      plan_code_invalid: "套餐码仅支持小写字母、数字、下划线、中划线，长度 3-32",
+      plan_name: "套餐名称",
+      permissions: "权限范围",
+      permissions_placeholder: "选择该套餐租户可持有的权限",
+      permissions_required: "请至少选择一个权限码",
+      status_enabled: "启用",
+      status_disabled: "停用",
     },
     otp: {
       alert_message: "SamWaf 双因素认证（ Two-Factor Authentication、缩写 2FA）是一种安全的登录验证技术。要求用户登录时除密码外，需要额外的身份验证信息从而提升帐号的安全性。",
