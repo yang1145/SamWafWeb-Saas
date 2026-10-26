@@ -324,19 +324,19 @@ const wafRoutes: RouteRecordRaw[] = [
         path: 'VpConfig',
         name: 'VpConfig',
         component: () => import('@/pages/waf/vpconfig/index.vue'),
-        meta: { title: 'menu.system.vpconfig_title', permission: 'host:manage' },
+        meta: { title: 'menu.system.vpconfig_title', permission: 'platform:admin' },
       },
       {
         path: 'HostGuard',
         name: 'HostGuard',
         component: () => import('@/pages/waf/hostguard/index.vue'),
-        meta: { title: 'menu.system.host_guard_title', permission: 'security:policy' },
+        meta: { title: 'menu.system.host_guard_title', permission: 'platform:admin' },
       },
       {
         path: 'FileManage',
         name: 'FileManage',
         component: () => import('@/pages/waf/filemanage/index.vue'),
-        meta: { title: 'menu.system.filemanage_title', permission: 'host:manage' },
+        meta: { title: 'menu.system.filemanage_title', permission: 'platform:admin' },
       },
       {
         path: 'IPLocation',
@@ -380,7 +380,7 @@ const wafRoutes: RouteRecordRaw[] = [
         path: 'DataRetention',
         name: 'DataRetention',
         component: () => import('@/pages/waf/data_retention/index.vue'),
-        meta: { title: 'menu.system.data_retention_title', permission: 'system:ops' },
+        meta: { title: 'menu.system.data_retention_title', permission: 'platform:admin' },
       },
       {
         path: 'OwaspManage',

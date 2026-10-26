@@ -152,7 +152,8 @@
             <!-- 左侧代码编辑区域 -->
             <t-col flex="auto">
               <!-- AI 生成规则面板 -->
-              <div class="ai-gen-panel">
+              <!-- AI 生成/GPT 配置走平台统一模型服务（后端仅平台侧可用），租户隐藏 -->
+              <div v-if="isPlatform" class="ai-gen-panel">
                 <div class="ai-gen-head">
                   <help-circle-icon class="ai-gen-icon" />
                   <span class="ai-gen-title">{{ t('page.rule.detail.ai_gen_title') }}</span>
@@ -449,6 +450,10 @@ import {
 } from '@/apis/rules';
 import { wafGptConfigGetApi } from '@/apis/gpt';
 import GptConfigDialog from '@/components/gpt-config/index.vue';
+import { usePermissionStore } from '@/store/modules/permission';
+
+// 平台侧判定（权限探针）：实例级/破坏性按钮仅平台账号可见
+const isPlatform = computed(() => usePermissionStore().isPlatform);
 
 const { t, locale } = useI18n();
 const route = useRoute();

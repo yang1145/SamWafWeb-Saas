@@ -34,7 +34,8 @@
     </t-layout>
 
     <!-- AI 助手抽屉 + 悬浮入口 -->
-    <ai-assistant />
+    <!-- AI 助手走平台统一配置的模型服务（GPT 配置/对话后端仅平台侧可达），租户隐藏 -->
+    <ai-assistant v-if="isPlatform" />
 
     <!-- 页面配置抽屉 -->
     <setting-panel />
@@ -54,6 +55,10 @@ import Breadcrumb from './components/Breadcrumb.vue';
 import AiAssistant from './components/AiAssistant.vue';
 import LayoutFooter from './components/Footer.vue';
 import SettingPanel from './setting.vue';
+import { usePermissionStore } from '@/store/modules/permission';
+
+// 平台侧判定（权限探针）：实例级/破坏性按钮仅平台账号可见
+const isPlatform = computed(() => usePermissionStore().isPlatform);
 
 const route = useRoute();
 const router = useRouter();

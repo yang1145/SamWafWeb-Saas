@@ -162,7 +162,7 @@
           <t-button size="small" theme="default" variant="outline" :disabled="!isDirty" @click="handleResetConfig">
             {{ t('page.iplocation.btn_revert') }}
           </t-button>
-          <t-button size="small" theme="primary" :disabled="!isDirty" @click="handleSaveConfig">
+          <t-button v-if="isPlatform" size="small" theme="primary" :disabled="!isDirty" @click="handleSaveConfig">
             {{ t('page.iplocation.btn_save_apply') }}
           </t-button>
         </div>
@@ -176,7 +176,7 @@
           <t-button size="small" theme="default" variant="outline" :loading="downloadChecking" @click="handleCheckUpgrade">
             {{ t('page.iplocation.download_check') }}
           </t-button>
-          <t-button size="small" theme="default" variant="outline" @click="handleReload">
+          <t-button v-if="isPlatform" size="small" theme="default" variant="outline" @click="handleReload">
             {{ t('page.iplocation.reload_button') }}
           </t-button>
         </div>
@@ -213,7 +213,7 @@
         <div class="download-progress-foot">
           <span class="download-progress-tip">{{ t('page.iplocation.download_running') }}</span>
           <!-- 官方源在部分网络下很慢，必须让用户能停下来改用手动下载 -->
-          <t-button size="small" theme="default" variant="outline" @click="handleCancelUpgrade">
+          <t-button v-if="isPlatform" size="small" theme="default" variant="outline" @click="handleCancelUpgrade">
             {{ t('page.iplocation.download_cancel') }}
           </t-button>
         </div>
@@ -291,6 +291,7 @@
             </t-button>
             <!-- 上传带上 key，后端据此确定落盘文件名，不再靠扩展名猜是哪个库 -->
             <t-upload
+              v-if="isPlatform"
               :action="uploadUrl"
               :headers="uploadHeaders"
               :data="{ type: row.upload_type, key: row.key }"
@@ -389,6 +390,10 @@ import {
   testIPLookupApi,
 } from '@/apis/iplocation';
 import { getBaseUrl } from '@/utils/usuallytool';
+import { usePermissionStore } from '@/store/modules/permission';
+
+// 平台侧判定（权限探针）：实例级/破坏性按钮仅平台账号可见
+const isPlatform = computed(() => usePermissionStore().isPlatform);
 
 const { t } = useI18n();
 

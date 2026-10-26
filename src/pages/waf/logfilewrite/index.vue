@@ -14,7 +14,8 @@
           </div>
           <t-space>
             <t-button theme="default" @click="handleRefresh">{{ t('common.refresh') }}</t-button>
-            <t-button theme="primary" @click="handleSave">{{ t('common.save') }}</t-button>
+            <!-- 保存写实例全局系统配置（system:config 域），仅平台侧可操作 -->
+            <t-button v-if="isPlatform" theme="primary" @click="handleSave">{{ t('common.save') }}</t-button>
           </t-space>
         </t-row>
       </template>
@@ -142,7 +143,7 @@
           </div>
           <t-space>
             <t-button theme="default" size="small" @click="fetchPreview">{{ t('common.refresh') }}</t-button>
-            <t-popconfirm :content="t('page.logfilewrite.confirm_clear')" @confirm="handleClearLog">
+            <t-popconfirm v-if="isPlatform" :content="t('page.logfilewrite.confirm_clear')" @confirm="handleClearLog">
               <t-button theme="danger" variant="outline" size="small">{{ t('page.logfilewrite.clear_log') }}</t-button>
             </t-popconfirm>
           </t-space>
@@ -186,6 +187,10 @@ import type { TableProps } from 'tdesign-vue-next';
 import { HelpCircleIcon } from 'tdesign-icons-vue-next';
 
 import { edit_system_config_by_item_api, get_detail_by_item_api } from '@/apis/systemconfig';
+import { usePermissionStore } from '@/store/modules/permission';
+
+// 平台侧判定（权限探针）：实例级/破坏性按钮仅平台账号可见
+const isPlatform = computed(() => usePermissionStore().isPlatform);
 import {
   clearLogFileApi,
   getBackupFilesApi,
