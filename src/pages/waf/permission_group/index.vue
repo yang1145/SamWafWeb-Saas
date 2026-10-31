@@ -198,6 +198,7 @@ const rules: FormProps['rules'] = {
 };
 
 const helpItems = computed(() => [
+  { k: t('page.permission_group.help_k_plan'), v: t('page.permission_group.help_v_plan') },
   { k: t('page.permission_group.help_k_binding'), v: t('page.permission_group.help_v_binding') },
   { k: t('page.permission_group.help_k_override'), v: t('page.permission_group.help_v_override') },
   { k: t('page.permission_group.help_k_builtin'), v: t('page.permission_group.help_v_builtin'), tone: 'danger' },

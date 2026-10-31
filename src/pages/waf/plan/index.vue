@@ -213,7 +213,9 @@ const { t } = useI18n();
  * 套餐权限集只允许勾选这些码——平台级管理、权限组管理、实例级系统配置
  * 属平台侧能力，任何套餐都不得包含（后端写入侧同样 fail-closed 拒绝）。
  */
-const TENANT_FORBIDDEN_CODES = ['platform:admin', 'permission:manage', 'system:config'];
+// permission:manage（权限组管理）已下放为租户可持有码：专业版/旗舰版套餐可包含，
+// 租户管理员据此为本租户子账号维护自定义权限组（组内容由后端按套餐天花板取交集）。
+const TENANT_FORBIDDEN_CODES = ['platform:admin', 'system:config'];
 
 const INITIAL_ADD_DATA = {
   plan_code: '',

@@ -724,6 +724,8 @@ export default {
       built_in_col: "Built-in",
       help_title: "Permission Groups - how it works",
       help_summary: "A permission group is a tenant-level custom role: bundle permission codes into a group and bind it to accounts, which are then authorized by the group's codes. An empty group grants nothing, so pick at least one.",
+      help_k_plan: "Assignable permission scope",
+      help_v_plan: "Group management is delegated to tenants holding this permission: selectable codes are bounded by the current plan bundle; codes outside the plan are rejected. Contact the platform administrator to upgrade the plan for more.",
       help_k_binding: "How to bind to an account",
       help_v_binding: "Pick a permission group when creating or editing an account in the Account List. Once bound, access is judged by the group's codes and the role dropdown no longer applies; clearing the group falls back to the legacy four roles.",
       help_k_override: "Relation to roles",
