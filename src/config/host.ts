@@ -1,3 +1,5 @@
+import { BRAND } from '@/config/brand';
+
 declare global {
   interface Window {
     __SAMWAF_SECURITY_PATH__?: string;
@@ -22,7 +24,7 @@ const securityPath: string = (() => {
 // 开发环境由 vite 代理 /api → http://127.0.0.1:26666，生产环境与后端同源部署
 export const API_HOST = `${securityPath}/api/v1`;
 
-/** 在线文档前缀 */
+/** 在线文档前缀（brand.docUrl 留空时返回空串，各入口据此隐藏） */
 export function getOnlineUrl() {
-  return 'https://doc.samwaf.com';
+  return BRAND.docUrl;
 }

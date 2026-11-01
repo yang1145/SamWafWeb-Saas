@@ -90,7 +90,7 @@ const props = withDefaults(
     defaultSalience?: number;
     ruleNamePrefix?: string;
   }>(),
-  { hostCode: '', defaultSalience: 10, ruleNamePrefix: 'SamWafRule' },
+  { hostCode: '', defaultSalience: 10, ruleNamePrefix: 'WafRule' },
 );
 const emit = defineEmits<{
   (e: 'confirm', content: string): void;

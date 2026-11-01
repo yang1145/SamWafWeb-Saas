@@ -26,26 +26,16 @@
         </t-button>
       </div>
 
-      <!-- 在线交流渠道 -->
-      <div class="sysinfo-channel-title">{{ t('common.system_info.channel_title') }}</div>
-      <div class="sysinfo-channels">
-        <a v-for="channel in channels" :key="channel.key" class="sysinfo-channel" :href="channel.url" target="_blank" rel="noopener noreferrer">
-          <component :is="channel.icon" class="sysinfo-channel-icon" />
-          {{ channel.label }}
-        </a>
-        <a class="sysinfo-channel" href="javascript:void(0)" @click="wechatVisible = !wechatVisible">
-          <logo-wechat-stroke-icon class="sysinfo-channel-icon" />
-          {{ t('common.system_info.wechat_mp') }}
-        </a>
-        <!-- 在线客服放最后 -->
-        <a class="sysinfo-channel" href="https://service.samwaf.com/" target="_blank" rel="noopener noreferrer">
-          <service-icon class="sysinfo-channel-icon" />
-          {{ t('common.system_info.online_service') }}
-        </a>
-      </div>
-      <div v-if="wechatVisible" class="sysinfo-wechat">
-        <img src="@/assets/assets-mp-samwaf.png" class="sysinfo-wechat-img" alt="SamWaf" />
-      </div>
+      <!-- 支持渠道：brand.ts 未配置任何渠道时整块隐藏 -->
+      <template v-if="channels.length">
+        <div class="sysinfo-channel-title">{{ t('common.system_info.channel_title') }}</div>
+        <div class="sysinfo-channels">
+          <a v-for="channel in channels" :key="channel.key" class="sysinfo-channel" :href="channel.url" target="_blank" rel="noopener noreferrer">
+            <component :is="channel.icon" class="sysinfo-channel-icon" />
+            {{ channel.label }}
+          </a>
+        </div>
+      </template>
     </div>
   </t-dialog>
 </template>
@@ -57,12 +47,10 @@ import { MessagePlugin } from 'tdesign-vue-next';
 import {
   ServiceIcon,
   BookOpenIcon,
-  LogoGithubIcon,
-  GitRepositoryIcon,
   MailIcon,
-  LogoWechatStrokeIcon,
 } from 'tdesign-icons-vue-next';
 import { SysRuntimeInfoApi } from '@/apis/sysinfo';
+import { BRAND } from '@/config/brand';
 
 // 版本号里带 beta / test / alpha / rc 的是预发布版本，必须明确标成"测试版"，
 // 不能跟正式版一样标绿，否则用户分不清手上跑的是不是稳定版本。
@@ -83,7 +71,6 @@ const innerVisible = computed({
 
 const loading = ref(false);
 const loadFailed = ref(false);
-const wechatVisible = ref(false);
 const info = ref<Record<string, any>>({});
 
 interface InfoRow {
@@ -93,13 +80,20 @@ interface InfoRow {
   tagTheme?: string;
 }
 
-/** 在线交流渠道：地址固定，用户反馈问题时可直接跳转（微信公众号、在线客服在模板里单列，排在最后） */
-const channels = computed(() => [
-  { key: 'doc', label: t('common.system_info.online_document'), url: 'https://doc.samwaf.com', icon: BookOpenIcon },
-  { key: 'github', label: t('common.system_info.github_issue'), url: 'https://github.com/samwafgo/SamWaf/issues', icon: LogoGithubIcon },
-  { key: 'gitee', label: t('common.system_info.gitee_issue'), url: 'https://gitee.com/samwaf/SamWaf/issues', icon: GitRepositoryIcon },
-  { key: 'email', label: t('common.system_info.email'), url: 'mailto:samwafgo@gmail.com', icon: MailIcon },
-]);
+/** 支持渠道：按 brand.ts 配置动态生成，未配置的不出现 */
+const channels = computed(() => {
+  const list: Array<{ key: string; label: string; url: string; icon: any }> = [];
+  if (BRAND.docUrl) {
+    list.push({ key: 'doc', label: t('common.system_info.online_document'), url: BRAND.docUrl, icon: BookOpenIcon });
+  }
+  if (BRAND.supportEmail) {
+    list.push({ key: 'email', label: t('common.system_info.email'), url: `mailto:${BRAND.supportEmail}`, icon: MailIcon });
+  }
+  if (BRAND.serviceUrl) {
+    list.push({ key: 'service', label: t('common.system_info.online_service'), url: BRAND.serviceUrl, icon: ServiceIcon });
+  }
+  return list;
+});
 
 function formatDuration(totalSeconds: number): string {
   const total = Math.max(0, Math.floor(Number(totalSeconds) || 0));
@@ -192,7 +186,6 @@ const infoRows = computed<InfoRow[]>(() => {
 function loadRuntimeInfo() {
   loading.value = true;
   loadFailed.value = false;
-  wechatVisible.value = false;
   SysRuntimeInfoApi()
     .then((res: any) => {
       if (res && res.code === 0 && res.data) {
@@ -331,15 +324,5 @@ function handleCopy() {
 
 .sysinfo-channel-icon {
   font-size: 16px;
-}
-
-.sysinfo-wechat {
-  margin-top: 12px;
-  text-align: center;
-}
-
-.sysinfo-wechat-img {
-  max-width: 320px;
-  width: 100%;
 }
 </style>

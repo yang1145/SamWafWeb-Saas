@@ -1,56 +1,83 @@
 <template>
   <div class="login-wrapper">
-    <div class="login-container">
-      <h1 class="login-title">{{ adminTitles.admin_title || t('login.login_sub_title') }}</h1>
-      <!-- 登录失败的原因就摆在表单上方（视线必经之路），不再飘到右上角去。
-           同一时刻只留一条，新的覆盖旧的 -->
-      <t-alert v-if="loginError" theme="error" :message="loginError" class="login-error-tip" close @close="loginError = ''" />
-      <t-form
-        :data="formData"
-        :rules="rules"
-        label-width="0"
-        @submit="onSubmit"
-      >
-        <t-form-item name="account">
-          <t-input v-model="formData.account" size="large" clearable :placeholder="t('login.input_account_placeholder')">
-            <template #prefix-icon><user-icon /></template>
-          </t-input>
-        </t-form-item>
-        <t-form-item name="password">
-          <t-input
-            v-model="formData.password"
-            size="large"
-            :type="showPsw ? 'text' : 'password'"
-            clearable
-            :placeholder="t('login.input_password_placeholder')"
-          >
-            <template #prefix-icon><lock-on-icon /></template>
-            <template #suffix-icon>
-              <browse-icon v-if="showPsw" style="cursor: pointer" @click="showPsw = !showPsw" />
-              <browse-off-icon v-else style="cursor: pointer" @click="showPsw = !showPsw" />
-            </template>
-          </t-input>
-        </t-form-item>
-        <!-- 安全码：仅在后端返回需要安全码（code=-2）时显示 -->
-        <t-form-item v-if="showSecretCode" name="secretCode">
-          <t-input
-            v-model="formData.secretCode"
-            size="large"
-            type="password"
-            autocomplete="one-time-code"
-            clearable
-            :placeholder="t('login.input_secret_code_placeholder')"
-          >
-            <template #prefix-icon><secured-icon /></template>
-          </t-input>
-        </t-form-item>
-        <t-form-item>
-          <t-button block size="large" type="submit" :loading="loading">
-            {{ t('login.login_btn_title') }}
-          </t-button>
-        </t-form-item>
-      </t-form>
-    </div>
+    <!-- 左侧品牌区：品牌色渐变 + 网格纹理 + 产品价值点（窄屏隐藏） -->
+    <section class="login-brand" aria-hidden="true">
+      <div class="brand-blob brand-blob--1" />
+      <div class="brand-blob brand-blob--2" />
+      <div class="brand-grid" />
+      <div class="brand-content">
+        <span class="brand-badge">{{ BRAND.logoBadge }}</span>
+        <h1 class="brand-title">{{ t('brand.product') }}</h1>
+        <p class="brand-tagline">{{ t('login.welcome_subtitle') }}</p>
+        <ul class="brand-features">
+          <li v-for="f in features" :key="f.title" class="brand-feature">
+            <span class="brand-feature-icon"><component :is="f.icon" /></span>
+            <span class="brand-feature-text">
+              <b>{{ f.title }}</b>
+              <span>{{ f.desc }}</span>
+            </span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 右侧登录区 -->
+    <section class="login-side">
+      <div class="login-container">
+        <h1 class="login-title">{{ adminTitles.admin_title || t('brand.product') }}</h1>
+        <p class="login-subtitle">{{ t('login.welcome_title') }}</p>
+        <!-- 登录失败的原因就摆在表单上方（视线必经之路），不再飘到右上角去。
+             同一时刻只留一条，新的覆盖旧的 -->
+        <t-alert v-if="loginError" theme="error" :message="loginError" class="login-error-tip" close @close="loginError = ''" />
+        <t-form
+          :data="formData"
+          :rules="rules"
+          label-width="0"
+          @submit="onSubmit"
+        >
+          <t-form-item name="account">
+            <t-input v-model="formData.account" size="large" clearable :placeholder="t('login.input_account_placeholder')">
+              <template #prefix-icon><user-icon /></template>
+            </t-input>
+          </t-form-item>
+          <t-form-item name="password">
+            <t-input
+              v-model="formData.password"
+              size="large"
+              :type="showPsw ? 'text' : 'password'"
+              clearable
+              :placeholder="t('login.input_password_placeholder')"
+            >
+              <template #prefix-icon><lock-on-icon /></template>
+              <template #suffix-icon>
+                <browse-icon v-if="showPsw" style="cursor: pointer" @click="showPsw = !showPsw" />
+                <browse-off-icon v-else style="cursor: pointer" @click="showPsw = !showPsw" />
+              </template>
+            </t-input>
+          </t-form-item>
+          <!-- 安全码：仅在后端返回需要安全码（code=-2）时显示 -->
+          <t-form-item v-if="showSecretCode" name="secretCode">
+            <t-input
+              v-model="formData.secretCode"
+              size="large"
+              type="password"
+              autocomplete="one-time-code"
+              clearable
+              :placeholder="t('login.input_secret_code_placeholder')"
+            >
+              <template #prefix-icon><secured-icon /></template>
+            </t-input>
+          </t-form-item>
+          <t-form-item>
+            <t-button block size="large" type="submit" :loading="loading">
+              {{ t('login.login_btn_title') }}
+            </t-button>
+          </t-form-item>
+        </t-form>
+      </div>
+
+      <footer class="copyright">{{ copyright }}</footer>
+    </section>
 
     <!-- 首次登录/口令到期 强制改密弹窗 -->
     <change-password-dialog
@@ -60,33 +87,44 @@
       :preset-old-password="formData.password"
       @success="onChangePwdSuccess"
     />
-
-    <footer class="copyright">
-      Copyright @ 2022-{{ new Date().getFullYear() }} SamWaf. All Rights Reserved
-      <t-link theme="primary" @click="handleJumpOnlineUrl">{{ t('login.login_has_question') }}</t-link>
-      <a href="https://doc.samwaf.com" target="_blank" rel="noopener noreferrer">{{ t('login.login_online_document') }}</a>
-    </footer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { MessagePlugin, type FormProps } from 'tdesign-vue-next';
-import { UserIcon, LockOnIcon, SecuredIcon, BrowseIcon, BrowseOffIcon } from 'tdesign-icons-vue-next';
+import {
+  ChartBarIcon,
+  InternetIcon,
+  SecuredIcon,
+  UserIcon,
+  LockOnIcon,
+  BrowseIcon,
+  BrowseOffIcon,
+} from 'tdesign-icons-vue-next';
 import { useUserStore } from '@/store/modules/user';
 import { CODE } from '@/utils/request';
 import { getSafeRedirectUrl } from '@/constants';
-import { getOnlineUrl } from '@/utils/usuallytool';
 import { takeLogoutReason } from '@/utils/localnotice';
 import { adminTitles } from '@/utils/adminTitles';
+import { BRAND, getCopyright } from '@/config/brand';
 import ChangePasswordDialog from '@/pages/waf/account/components/ChangePasswordDialog.vue';
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
+
+const copyright = getCopyright();
+
+/** 品牌区价值点：标题 + 描述走 i18n，图标用 TDesign 内置图标 */
+const features = computed(() => [
+  { icon: InternetIcon, title: t('login.feature_access_title'), desc: t('login.feature_access_desc') },
+  { icon: SecuredIcon, title: t('login.feature_block_title'), desc: t('login.feature_block_desc') },
+  { icon: ChartBarIcon, title: t('login.feature_analytics_title'), desc: t('login.feature_analytics_desc') },
+]);
 
 const loading = ref(false);
 const showPsw = ref(false);
@@ -154,36 +192,170 @@ function onChangePwdSuccess() {
   const redirect = (route.query.redirect as string) || getSafeRedirectUrl();
   router.replace(redirect);
 }
-
-function handleJumpOnlineUrl() {
-  window.open(getOnlineUrl(), '_blank', 'noopener,noreferrer');
-}
 </script>
 
 <style scoped>
 .login-wrapper {
-  position: relative;
   display: flex;
-  align-items: center;
-  justify-content: center;
   height: 100vh;
   background: var(--td-bg-color-page);
 }
 
+/* ===== 左侧品牌区 ===== */
+.login-brand {
+  position: relative;
+  flex: 1 1 55%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--td-text-color-anti);
+  background: linear-gradient(160deg, var(--td-brand-color-7) 0%, var(--td-brand-color-9) 55%, var(--td-brand-color-10) 100%);
+}
+
+/* 网格纹理：中心亮、四周淡出 */
+.brand-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 36px 36px;
+  -webkit-mask-image: radial-gradient(ellipse at 35% 40%, #000 25%, transparent 72%);
+  mask-image: radial-gradient(ellipse at 35% 40%, #000 25%, transparent 72%);
+}
+
+.brand-blob {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.brand-blob--1 {
+  width: 460px;
+  height: 460px;
+  right: -140px;
+  top: -160px;
+  background: radial-gradient(circle at 32% 32%, rgba(255, 255, 255, 0.16), transparent 62%);
+}
+
+.brand-blob--2 {
+  width: 560px;
+  height: 560px;
+  left: -180px;
+  bottom: -220px;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.16), transparent 62%);
+}
+
+.brand-content {
+  position: relative;
+  max-width: 460px;
+  padding: 48px 40px;
+}
+
+.brand-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 2px;
+}
+
+.brand-title {
+  margin: 22px 0 12px;
+  font-size: 34px;
+  line-height: 1.25;
+  letter-spacing: 0.5px;
+}
+
+.brand-tagline {
+  margin: 0 0 44px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.brand-features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 24px;
+}
+
+.brand-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.brand-feature-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 20px;
+}
+
+.brand-feature-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.brand-feature-text b {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.brand-feature-text > span {
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ===== 右侧登录区 ===== */
+.login-side {
+  position: relative;
+  flex: 1 1 45%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
 .login-container {
   width: 400px;
-  padding: 40px 32px;
+  max-width: 100%;
+  padding: 40px 32px 32px;
   border-radius: var(--td-radius-large);
   background: var(--td-bg-color-container);
+  border: 1px solid var(--td-component-stroke);
   box-shadow: var(--td-shadow-1);
 }
 
 .login-title {
-  margin: 0 0 32px;
-  font-size: 24px;
+  margin: 0 0 6px;
+  font-size: 22px;
   text-align: center;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.login-subtitle {
+  margin: 0 0 28px;
+  text-align: center;
+  color: var(--td-text-color-secondary);
+  font-size: 13px;
 }
 
 .copyright {
@@ -196,14 +368,14 @@ function handleJumpOnlineUrl() {
   font-size: 12px;
 }
 
-.copyright a,
-.copyright .t-link {
-  margin-left: 8px;
-  margin-right: 0;
-  font-size: 12px;
-}
-
 .login-error-tip {
   margin-bottom: 16px;
+}
+
+/* 窄屏：隐藏品牌区，登录卡片居中承担全部信息 */
+@media (max-width: 900px) {
+  .login-brand {
+    display: none;
+  }
 }
 </style>

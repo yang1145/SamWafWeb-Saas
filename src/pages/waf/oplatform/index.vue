@@ -38,7 +38,7 @@
         :items="helpItems"
         :note="t('page.oplatform.help_note')"
         :title="t('page.oplatform.help_title')"
-        doc="https://doc.samwaf.com/api/"
+        doc="api/"
         storage-key="oplatform-key"
       />
 

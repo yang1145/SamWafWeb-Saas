@@ -1,4 +1,5 @@
 import { API_HOST } from '@/config/host';
+import { BRAND } from '@/config/brand';
 
 /** 深拷贝对象 */
 export function copyObj<T>(obj: T): T {
@@ -18,9 +19,9 @@ export function getBaseUrl() {
   return API_HOST;
 }
 
-/** 获取在线文档前缀 */
+/** 获取在线文档前缀（brand.docUrl 留空时返回空串，各入口据此隐藏） */
 export function getOnlineUrl() {
-  return 'https://doc.samwaf.com';
+  return BRAND.docUrl;
 }
 
 /** 判断是否是对象 */

@@ -54,14 +54,10 @@
               <chevron-right-icon class="suggest-arrow" />
             </div>
           </div>
-          <!-- 模型本身不能联网，这两个入口是给用户自己查的 -->
-          <div class="welcome-links">
+          <!-- 模型本身不能联网，留个文档入口给用户自己查（未配置文档站时隐藏） -->
+          <div v-if="docUrl" class="welcome-links">
             <t-link theme="primary" hover="color" size="small" :href="docUrl" target="_blank" rel="noopener noreferrer">
               {{ t('page.gpt.link_doc') }}
-            </t-link>
-            <span class="welcome-links-split">·</span>
-            <t-link theme="primary" hover="color" size="small" :href="issueUrl" target="_blank" rel="noopener noreferrer">
-              {{ t('page.gpt.link_issue') }}
             </t-link>
           </div>
           <div class="welcome-foot">{{ t('page.gpt.welcome_foot') }}</div>
@@ -162,6 +158,7 @@ import GptConfigDialog from '@/components/gpt-config/index.vue';
 import bus from '@/utils/bus';
 import { fetchChatStream } from '@/utils/eventSource';
 import { wafGptConfigGetApi } from '@/apis/gpt';
+import { BRAND } from '@/config/brand';
 
 interface ChatItem {
   role: 'user' | 'assistant';
@@ -169,7 +166,7 @@ interface ChatItem {
   loading?: boolean;
 }
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
 
 const aiChatBoxVisible = ref(false);
 const questionList = ref<ChatItem[]>([]);
@@ -204,12 +201,8 @@ const sceneLabel = computed(() => {
   return '';
 });
 
-// 官方文档（按界面语言给中/英文档）
-const docUrl = computed(() => {
-  const en = String(locale.value || '').toLowerCase().indexOf('en') === 0;
-  return en ? 'https://doc.samwaf.com/en/' : 'https://doc.samwaf.com/';
-});
-const issueUrl = 'https://github.com/samwafgo/SamWaf/issues';
+// 官方文档（brand.docUrl 未配置时空串，模板据此隐藏入口）
+const docUrl = computed(() => BRAND.docUrl);
 
 /** 检测 AI 是否已配置密钥（后端只回 has_token，不下发明文） */
 async function checkGptConfig() {

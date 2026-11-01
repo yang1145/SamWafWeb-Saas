@@ -1,8 +1,12 @@
 <template>
-  <div class="layout-footer">Copyright @ 2022-{{ new Date().getFullYear() }} SamWaf. All Rights Reserved</div>
+  <div class="layout-footer">{{ copyright }}</div>
 </template>
 
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { getCopyright } from '@/config/brand';
+
+const copyright = getCopyright();
+</script>
 
 <style scoped>
 .layout-footer {

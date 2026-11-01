@@ -8,23 +8,27 @@
     @change="onMenuChange"
   >
     <template #logo>
+      <!-- 纯文字标识：展开态显示产品名，折叠态显示品牌徽标（见 config/brand.ts） -->
       <span class="side-nav-logo-wrapper" @click="router.push('/dashboard/base')">
-        <img :src="collapsed ? logoSmall : logoFull" :class="['side-nav-logo', { 'side-nav-logo--dark': settingStore.displayMode === 'dark' }]" alt="SamWaf" />
+        <span v-if="!collapsed" class="side-nav-wordmark">{{ t('brand.product') }}</span>
+        <span v-else class="side-nav-badge">{{ BRAND.logoBadge }}</span>
       </span>
     </template>
     <menu-content :nav-data="menuRoutes" />
     <template #operations>
-      <!-- 版本号即“系统信息”入口：做成带图标的可点击块，避免用户看不出来能点 -->
+      <!-- 版本号即“系统信息”入口：弱化显示，不抢视觉焦点 -->
       <t-tooltip placement="top" :content="t('common.system_info.tooltip')">
         <div v-if="versionInfo.version" class="version-entry" @click="sysinfoVisible = true">
           <device-icon class="version-entry-icon" />
           <span v-if="!collapsed" class="version-entry-text">
             {{ versionInfo.version_name }}({{ versionInfo.version }})
-            <span v-if="versionInfo.version_release === 'false'" style="color: red">{{ t('common.debug') }}</span>
+            <t-tag v-if="versionInfo.version_release === 'false'" size="small" theme="warning" variant="light" class="version-entry-tag">
+              {{ t('common.debug') }}
+            </t-tag>
           </span>
         </div>
       </t-tooltip>
-      <!-- 点击版本号查看系统信息与在线交流渠道 -->
+      <!-- 点击版本号查看系统信息 -->
       <system-info-dialog v-model:visible="sysinfoVisible" />
     </template>
   </t-menu>
@@ -39,8 +43,7 @@ import { DeviceIcon } from 'tdesign-icons-vue-next';
 import { routes } from '@/router';
 import { useSettingStore } from '@/store/modules/setting';
 import { SysVersionApi } from '@/apis/sysinfo';
-import logoFull from '@/assets/assets-logo-full.svg';
-import logoSmall from '@/assets/assets-t-logo.svg';
+import { BRAND } from '@/config/brand';
 import MenuContent from './MenuContent.vue';
 import SystemInfoDialog from './SystemInfoDialog.vue';
 
@@ -86,20 +89,39 @@ function onMenuChange(value: MenuValue) {
   display: inline-flex;
   align-items: center;
   height: 100%;
+  min-width: 0;
+  padding: 0 4px;
   cursor: pointer;
 }
 
-.side-nav-logo {
-  max-width: 100%;
-  height: 26px;
+/* 展开态：产品名文字标识 */
+.side-nav-wordmark {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--td-brand-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* 黑色字 logo 在暗色菜单下反色显示 */
-.side-nav-logo--dark {
-  filter: invert(1) hue-rotate(180deg);
+/* 折叠态：紧凑文字徽标 */
+.side-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: var(--td-radius-medium);
+  background-color: var(--td-brand-color);
+  color: var(--td-text-color-anti);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
-/* 左下角版本号 = 系统信息入口，需要看起来可点 */
+/* 左下角版本号 = 系统信息入口，弱化为次要信息，避免喧宾夺主 */
 .version-entry {
   display: inline-flex;
   align-items: center;
@@ -107,7 +129,7 @@ function onMenuChange(value: MenuValue) {
   max-width: 100%;
   padding: 4px 8px;
   border-radius: var(--td-radius-default);
-  color: var(--td-brand-color);
+  color: var(--td-text-color-secondary);
   font-size: 12px;
   line-height: 20px;
   cursor: pointer;
@@ -115,7 +137,8 @@ function onMenuChange(value: MenuValue) {
 }
 
 .version-entry:hover {
-  background-color: var(--td-brand-color-light);
+  background-color: var(--td-bg-color-secondarycontainer);
+  color: var(--td-text-color-primary);
 }
 
 .version-entry-icon {
@@ -127,5 +150,10 @@ function onMenuChange(value: MenuValue) {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.version-entry-tag {
+  flex: 0 0 auto;
+  margin-left: 4px;
 }
 </style>

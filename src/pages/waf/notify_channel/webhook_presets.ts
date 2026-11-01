@@ -72,7 +72,7 @@ export const WEBHOOK_PRESETS: WebhookPreset[] = [
     method: 'POST',
     contentType: 'application/json',
     headers: [],
-    bodyTemplate: '{\n  "title": "{{.Title}}",\n  "body": "{{.Content}}",\n  "group": "SamWaf"\n}',
+    bodyTemplate: '{\n  "title": "{{.Title}}",\n  "body": "{{.Content}}",\n  "group": "WAF"\n}',
     urlPlaceholder: 'https://api.day.app/<你的Key>',
     hintKey: 'page.notify_channel.webhook_hint_bark',
   },
@@ -82,7 +82,7 @@ export const WEBHOOK_PRESETS: WebhookPreset[] = [
     method: 'POST',
     contentType: 'text/plain',
     headers: [
-      { key: 'X-Title', value: 'SamWaf Alert' },
+      { key: 'X-Title', value: 'WAF Alert' },
       { key: 'X-Priority', value: '4' },
     ],
     bodyTemplate: '{{.Title}}\n\n{{.Content}}',

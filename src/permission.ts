@@ -4,6 +4,7 @@ import router from '@/router';
 import i18n from '@/i18n';
 import { watchEffect } from 'vue';
 import { adminTitles } from '@/utils/adminTitles';
+import { getBrandName } from '@/config/brand';
 
 NProgress.configure({ showSpinner: false });
 
@@ -16,7 +17,7 @@ watchEffect(() => {
   } else if (titleKey) {
     // 动态 key 场景下收窄函数签名，避免泛型推导过深。
     const translate = (i18n.global as unknown as { t: (key: string) => string }).t;
-    document.title = `${translate(titleKey)} - SamWaf`;
+    document.title = `${translate(titleKey)} - ${getBrandName()}`;
   }
 });
 

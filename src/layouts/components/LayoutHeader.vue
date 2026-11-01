@@ -16,25 +16,13 @@
     <search v-if="!settingStore.isMobile" />
 
     <!-- 系统监控（移动端隐藏） -->
-    <system-monitor-widget v-if="!settingStore.isMobile" @open-wechat="wechatVisible = true" />
+    <system-monitor-widget v-if="!settingStore.isMobile" />
 
     <!-- 全局通知 -->
     <notice />
 
-    <!-- 微信公众号 -->
-    <t-tooltip v-if="!settingStore.isMobile" placement="bottom" :content="t('topNav.wechat')">
-      <t-button theme="default" shape="square" variant="text" @click="wechatVisible = true">
-        <logo-wechat-stroke-icon />
-      </t-button>
-    </t-tooltip>
-    <!-- 联系我们 -->
-    <t-tooltip v-if="!settingStore.isMobile" placement="bottom" :content="t('topNav.contract')">
-      <t-button theme="default" shape="square" variant="text" @click="sendMail">
-        <mail-icon />
-      </t-button>
-    </t-tooltip>
-    <!-- 帮助文档 -->
-    <t-tooltip placement="bottom" :content="t('topNav.help_document')">
+    <!-- 帮助文档（brand.docUrl 未配置时隐藏） -->
+    <t-tooltip v-if="BRAND.docUrl" placement="bottom" :content="t('topNav.help_document')">
       <t-button theme="default" shape="square" variant="text" @click="navToHelper">
         <help-circle-icon />
       </t-button>
@@ -62,15 +50,6 @@
       </t-button>
     </t-dropdown>
 
-    <!-- 微信公众号二维码对话框 -->
-    <t-dialog v-model:visible="wechatVisible" width="800px" :header="t('topNav.wechat')" :confirm-btn="null" :cancel-btn="null">
-      <div class="wechat-qr-container">
-        <div class="qr-image-wrapper">
-          <img src="@/assets/assets-mp-samwaf.png" class="qr-image" />
-        </div>
-      </div>
-    </t-dialog>
-
     <!-- 个人自助修改密码 -->
     <change-password-dialog v-model:visible="showChangePwd" :forced="false" />
   </div>
@@ -84,8 +63,6 @@ import { MessagePlugin } from 'tdesign-vue-next';
 import type { DropdownProps } from 'tdesign-vue-next';
 import {
   HelpCircleIcon,
-  LogoWechatStrokeIcon,
-  MailIcon,
   SettingIcon,
   TranslateIcon,
   UserCircleIcon,
@@ -96,6 +73,7 @@ import { useUserStore } from '@/store/modules/user';
 import { useSettingStore } from '@/store/modules/setting';
 import { resetWAFApi } from '@/apis/common';
 import { getOnlineUrl } from '@/utils/usuallytool';
+import { BRAND } from '@/config/brand';
 import Notice from './Notice.vue';
 import Search from './Search.vue';
 import SystemMonitorWidget from './SystemMonitorWidget.vue';
@@ -106,8 +84,6 @@ const { t, locale } = useI18n();
 const userStore = useUserStore();
 const settingStore = useSettingStore();
 
-/** 微信二维码对话框 */
-const wechatVisible = ref(false);
 const isResetloading = ref(false);
 
 const langOptions: DropdownProps['options'] = [
@@ -150,10 +126,6 @@ async function onUserAction(data: { value?: string | number }) {
 
 function navToHelper() {
   window.open(getOnlineUrl(), '_blank', 'noopener,noreferrer');
-}
-
-function sendMail() {
-  window.location.href = 'mailto:samwafgo@gmail.com';
 }
 
 function resetServer() {
@@ -213,22 +185,5 @@ function resetServer() {
   border-radius: 18px;
   border: 1px solid var(--td-component-stroke);
   margin-left: 8px;
-}
-
-/* 微信二维码对话框样式 */
-.wechat-qr-container {
-  text-align: center;
-  padding: 20px;
-}
-
-.wechat-qr-container .qr-image-wrapper {
-  margin-bottom: 16px;
-}
-
-.wechat-qr-container .qr-image {
-  max-width: 100%;
-  height: auto;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 </style>

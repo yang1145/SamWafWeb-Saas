@@ -356,12 +356,12 @@
         :row-class-name="formatRowClass"
       ></t-table>
 
-      <!-- 投稿入口和格式说明是同一件事，放在这儿比压在页面底部合适 -->
-      <div class="contribute-box">
+      <!-- 投稿入口和格式说明是同一件事，放在这儿比压在页面底部合适；未配置支持邮箱时整块隐藏 -->
+      <div v-if="BRAND.supportEmail" class="contribute-box">
         <p class="help-text">{{ t('page.iplocation.contribute_desc') }}</p>
         <p>
           <span style="font-weight: 600">{{ t('page.iplocation.contribute_email_label') }}：</span>
-          <t-link href="mailto:samwafgo@gmail.com" theme="primary">samwafgo@gmail.com</t-link>
+          <t-link :href="`mailto:${BRAND.supportEmail}`" theme="primary">{{ BRAND.supportEmail }}</t-link>
         </p>
         <p class="help-text">{{ t('page.iplocation.contribute_note') }}</p>
       </div>
@@ -391,6 +391,7 @@ import {
 } from '@/apis/iplocation';
 import { getBaseUrl } from '@/utils/usuallytool';
 import { usePermissionStore } from '@/store/modules/permission';
+import { BRAND } from '@/config/brand';
 
 // 平台侧判定（权限探针）：实例级/破坏性按钮仅平台账号可见
 const isPlatform = computed(() => usePermissionStore().isPlatform);
@@ -485,7 +486,7 @@ const progress = ref<Record<string, any>>({
 });
 let progressTimer: ReturnType<typeof setInterval> | null = null;
 // 还没「检查更新」拿到服务端真实路径前的占位
-const dataDirFallback = '<SamWaf 程序目录>/data';
+const dataDirFallback = '<程序目录>/data';
 
 const helpVisible = ref(false);
 const helpFormatId = ref('');

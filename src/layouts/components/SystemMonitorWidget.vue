@@ -35,7 +35,6 @@
                 <div>{{ t('topNav.runtime_switch_tip') }}</div>
                 <div class="env-migrate">
                   {{ t('topNav.runtime_migrate_tip') }}
-                  <t-link theme="primary" hover="color" @click="openWechat">{{ t('topNav.wechat_account_name') }}</t-link>
                 </div>
               </div>
             </div>
@@ -122,8 +121,6 @@ import { useStatsStore } from '@/store/modules/stats';
 const { t } = useI18n();
 const router = useRouter();
 const statsStore = useStatsStore();
-
-const emit = defineEmits<{ (e: 'open-wechat'): void }>();
 
 const loading = ref(false);
 const error = ref(false);
@@ -222,12 +219,6 @@ function refreshData() {
 function goToMonitorPage() {
   router.push('/dashboard/stats');
   isMonitorVisible.value = false;
-}
-
-// 打开微信公众号二维码（复用头部的二维码弹窗）
-function openWechat() {
-  isMonitorVisible.value = false;
-  emit('open-wechat');
 }
 
 // 根据使用率获取颜色

@@ -15,6 +15,11 @@ import './permission';
 import { setupDialogOverlayGuard } from './utils/dialogOverlayGuard';
 import { setupMessageGuard } from './utils/messageguard';
 import { loadAdminTitles } from './utils/adminTitles';
+import { BRAND } from './config/brand';
+
+// 品牌文案注入 i18n：页面统一用 t('brand.product')，改名只动 config/brand.ts
+i18n.global.mergeLocaleMessage('zh_CN', { brand: { product: BRAND.nameZh } });
+i18n.global.mergeLocaleMessage('en_US', { brand: { product: BRAND.nameEn } });
 
 setupDialogOverlayGuard();
 // 全局提示去重 + 跳登录后抑制回声，见

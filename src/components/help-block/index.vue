@@ -167,6 +167,8 @@ function buildDocUrl(path: string): string {
 }
 
 const docs = computed(() => {
+  // 未配置文档站（brand.docUrl 为空）时不渲染任何文档链接
+  if (!getOnlineUrl()) return [];
   const list: Array<{ label: string; url: string }> = [];
   if (props.doc) list.push({ label: t('common.help_block.doc_main'), url: buildDocUrl(props.doc) });
   props.links.forEach((l) => {

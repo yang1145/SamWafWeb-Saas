@@ -1990,7 +1990,7 @@ function handleDownloadLocalCa() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'samwaf-local-ca.crt';
+  a.download = 'waf-local-ca.crt';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
