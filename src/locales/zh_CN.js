@@ -222,6 +222,8 @@ export default {
     login_title: "登录",
     input_account_placeholder: "请输入账号：",
     input_password_placeholder: "请输入登录密码：",
+    input_captcha_placeholder: "请输入验证码",
+    captcha_refresh_hint: "看不清？点击更换",
     input_secret_code_placeholder: "请输入安全码：",
     login_btn_title: "登录",
     welcome_title: "欢迎登录",

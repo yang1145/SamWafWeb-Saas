@@ -222,6 +222,8 @@ export default {
     login_title: "Login",
     input_account_placeholder: "Please enter your account:",
     input_password_placeholder: "Please enter your password:",
+    input_captcha_placeholder: "Enter captcha",
+    captcha_refresh_hint: "Unclear? Click to refresh",
     input_secret_code_placeholder: "Please enter your secret code:",
     login_btn_title: "Login",
     welcome_title: "Welcome back",

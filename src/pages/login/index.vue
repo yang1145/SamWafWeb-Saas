@@ -57,6 +57,30 @@
               </template>
             </t-input>
           </t-form-item>
+          <!-- 图形验证码：防爆破（后端单次有效；点图片换一张） -->
+          <t-form-item name="captcha">
+            <div class="captcha-row">
+              <t-input
+                v-model="formData.captcha"
+                size="large"
+                clearable
+                :maxlength="4"
+                :placeholder="t('login.input_captcha_placeholder')"
+                @enter="onCaptchaEnter"
+              ></t-input>
+              <img
+                v-if="captchaImg"
+                :src="captchaImg"
+                class="captcha-img"
+                :title="t('login.captcha_refresh_hint')"
+                alt="captcha"
+                @click="loadCaptcha()"
+              />
+              <div v-else class="captcha-img captcha-img--loading" @click="loadCaptcha()">
+                {{ t('login.captcha_refresh_hint') }}
+              </div>
+            </div>
+          </t-form-item>
           <!-- 安全码：仅在后端返回需要安全码（code=-2）时显示 -->
           <t-form-item v-if="showSecretCode" name="secretCode">
             <t-input
@@ -93,7 +117,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { MessagePlugin, type FormProps } from 'tdesign-vue-next';
@@ -107,12 +131,38 @@ import {
   BrowseOffIcon,
 } from 'tdesign-icons-vue-next';
 import { useUserStore } from '@/store/modules/user';
+import { login_captcha_api } from '@/apis/login';
 import { CODE } from '@/utils/request';
 import { getSafeRedirectUrl } from '@/constants';
 import { takeLogoutReason } from '@/utils/localnotice';
 import { adminTitles } from '@/utils/adminTitles';
 import { BRAND } from '@/config/brand';
 import { brandCopyrightText, brandDisplayName, brandRuntime, loadBrandLogo } from '@/config/brandRuntime';
+
+// ===== 登录图形验证码（防爆破；后端 2 分钟过期、单次有效） =====
+const captchaId = ref('');
+const captchaImg = ref('');
+
+async function loadCaptcha() {
+  try {
+    const res = await login_captcha_api();
+    if (res.code === 0 && res.data?.captcha_id) {
+      captchaId.value = res.data.captcha_id;
+      captchaImg.value = res.data.image;
+    } else {
+      captchaImg.value = '';
+    }
+  } catch {
+    captchaImg.value = '';
+  }
+}
+
+function onCaptchaEnter() {
+  // 验证码框内回车即提交（t-form 的 submit 由按钮触发，这里模拟点击）
+  (document.activeElement as HTMLElement)?.closest('form')?.requestSubmit();
+}
+
+onMounted(loadCaptcha);
 import ChangePasswordDialog from '@/pages/waf/account/components/ChangePasswordDialog.vue';
 
 const { t } = useI18n();
@@ -147,6 +197,7 @@ if (takeLogoutReason() === 'auth') {
 const formData = reactive({
   account: '',
   password: '',
+  captcha: '',
   secretCode: '',
 });
 
@@ -164,6 +215,8 @@ const onSubmit: FormProps['onSubmit'] = async ({ validateResult }) => {
       login_account: formData.account,
       login_password: formData.password,
       login_otp_secret_code: formData.secretCode,
+      captcha_id: captchaId.value,
+      captcha_code: formData.captcha,
     });
     if (res.code === CODE.REQUEST_SUCCESS) {
       // 首次登录/口令到期：强制改密，改密成功后再进入系统
@@ -176,16 +229,20 @@ const onSubmit: FormProps['onSubmit'] = async ({ validateResult }) => {
       const redirect = (route.query.redirect as string) || getSafeRedirectUrl();
       router.replace(redirect);
     } else if (res.code === CODE.NEED_OTP_CODE) {
-      // 该账号开启了 2FA，显示安全码输入框让用户补填
+      // 该账号开启了 2FA，显示安全码输入框让用户补填。
+      // 后端已回存验证码（安全码补填重提不需要重解），这里保留原验证码不刷新
       showSecretCode.value = true;
       formData.secretCode = '';
       loginError.value = res.msg;
     } else {
       loginError.value = res.msg || 'Login failed';
+      // 验证码单次有效：任何失败（验证码错/密码错/锁定等）都换一张新码重试
+      await loadCaptcha();
     }
   } catch (e: any) {
     // 连不上后端 / 超时：登录页没有铃铛可收，直接摆在表单上方
     loginError.value = t('login.login_request_failed');
+    await loadCaptcha();
   } finally {
     loading.value = false;
   }
@@ -204,6 +261,32 @@ function onChangePwdSuccess() {
   display: flex;
   height: 100vh;
   background: var(--td-bg-color-page);
+}
+
+/* ===== 图形验证码 ===== */
+.captcha-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  align-items: stretch;
+}
+
+.captcha-img {
+  flex: 0 0 132px;
+  height: 44px;
+  border-radius: var(--td-radius-medium);
+  border: 1px solid var(--td-component-stroke);
+  cursor: pointer;
+  object-fit: cover;
+  user-select: none;
+}
+
+.captcha-img--loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--td-text-color-placeholder);
 }
 
 /* ===== 左侧品牌区 ===== */
