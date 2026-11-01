@@ -10,8 +10,15 @@
     <template #logo>
       <!-- 纯文字标识：展开态显示产品名，折叠态显示品牌徽标（见 config/brand.ts） -->
       <span class="side-nav-logo-wrapper" @click="router.push('/dashboard/base')">
-        <span v-if="!collapsed" class="side-nav-wordmark">{{ t('brand.product') }}</span>
-        <span v-else class="side-nav-badge">{{ BRAND.logoBadge }}</span>
+        <template v-if="!collapsed">
+          <!-- 平台配置了品牌 Logo 时优先图片，否则文字标识 -->
+          <img v-if="brandRuntime.logo" :src="brandRuntime.logo" class="side-nav-logo-img" alt="logo" />
+          <span v-else class="side-nav-wordmark">{{ brandDisplayName() }}</span>
+        </template>
+        <template v-else>
+          <img v-if="brandRuntime.logo" :src="brandRuntime.logo" class="side-nav-logo-img side-nav-logo-img--badge" alt="logo" />
+          <span v-else class="side-nav-badge">{{ BRAND.logoBadge }}</span>
+        </template>
       </span>
     </template>
     <menu-content :nav-data="menuRoutes" />
@@ -44,8 +51,12 @@ import { routes } from '@/router';
 import { useSettingStore } from '@/store/modules/setting';
 import { SysVersionApi } from '@/apis/sysinfo';
 import { BRAND } from '@/config/brand';
+import { brandDisplayName, brandRuntime, loadBrandLogo } from '@/config/brandRuntime';
 import MenuContent from './MenuContent.vue';
 import SystemInfoDialog from './SystemInfoDialog.vue';
+
+// 品牌图片按需拉取（平台「品牌设置」下发；未配置时走默认徽标）
+void loadBrandLogo();
 
 withDefaults(defineProps<{ collapsed?: boolean }>(), { collapsed: false });
 
@@ -92,6 +103,18 @@ function onMenuChange(value: MenuValue) {
   min-width: 0;
   padding: 0 4px;
   cursor: pointer;
+}
+
+/* 品牌图片（平台「品牌设置」下发）：展开态与文字标识等高，折叠态与徽标等大 */
+.side-nav-logo-img {
+  max-height: 28px;
+  max-width: 160px;
+  object-fit: contain;
+}
+
+.side-nav-logo-img--badge {
+  max-height: 28px;
+  max-width: 30px;
 }
 
 /* 展开态：产品名文字标识 */

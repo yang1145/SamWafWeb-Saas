@@ -4,6 +4,7 @@ import router from '@/router';
 import i18n from '@/i18n';
 import { watchEffect } from 'vue';
 import { adminTitles } from '@/utils/adminTitles';
+import { brandRuntime } from '@/config/brandRuntime';
 import { getBrandName } from '@/config/brand';
 
 NProgress.configure({ showSpinner: false });

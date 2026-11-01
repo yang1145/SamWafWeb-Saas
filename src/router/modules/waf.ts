@@ -7,6 +7,7 @@ import {
   LightingCircleIcon,
   NotificationIcon,
   ServerIcon,
+  ShopIcon,
   SystemLogIcon,
   SystemSettingIcon,
   UserCircleIcon,
@@ -317,6 +318,32 @@ const wafRoutes: RouteRecordRaw[] = [
     ],
   },
   {
+    // 商业化分组：SaaS 运营的平台侧能力（租户生命周期/套餐差异化/品牌白标），
+    // 从「系统设置」独立出来——它们是运营动作而不是系统参数，全部 platform:admin
+    path: 'commercial',
+    meta: { title: 'menu.commercial.parent_title', icon: markRaw(ShopIcon) },
+    children: [
+      {
+        path: 'Tenant',
+        name: 'Tenant',
+        component: () => import('@/pages/waf/tenant/index.vue'),
+        meta: { title: 'menu.commercial.tenant_title', permission: 'platform:admin' },
+      },
+      {
+        path: 'Plan',
+        name: 'Plan',
+        component: () => import('@/pages/waf/plan/index.vue'),
+        meta: { title: 'menu.commercial.plan_title', permission: 'platform:admin' },
+      },
+      {
+        path: 'Brand',
+        name: 'Brand',
+        component: () => import('@/pages/waf/brand/index.vue'),
+        meta: { title: 'menu.commercial.brand_title', permission: 'platform:admin' },
+      },
+    ],
+  },
+  {
     path: 'sys',
     meta: { title: 'menu.system.parent_title', icon: markRaw(SystemSettingIcon) },
     children: [
@@ -427,20 +454,6 @@ const wafRoutes: RouteRecordRaw[] = [
         // SQL 查询直接执行数据库语句，极度敏感，平台域专属
         component: () => import('@/pages/waf/sqlquery/index.vue'),
         meta: { title: 'menu.system.sql_query_title', permission: 'platform:admin' },
-      },
-      {
-        path: 'Tenant',
-        name: 'Tenant',
-        component: () => import('@/pages/waf/tenant/index.vue'),
-        // 租户管理：平台域专属（platform:admin），租户侧探针不通过即隐藏+拦截
-        meta: { title: 'menu.system.tenant_title', permission: 'platform:admin' },
-      },
-      {
-        path: 'Plan',
-        name: 'Plan',
-        component: () => import('@/pages/waf/plan/index.vue'),
-        // 套餐管理：租户差异化的配置源（权限集/配额/宽限默认值），平台域专属
-        meta: { title: 'menu.system.plan_title', permission: 'platform:admin' },
       },
     ],
   },

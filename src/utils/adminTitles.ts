@@ -1,6 +1,8 @@
 import { reactive } from 'vue';
 import request from '@/utils/request';
 
+import { applyBrandBootstrap } from '@/config/brandRuntime';
+
 export interface AdminTitles {
   admin_title: string;
 }
@@ -10,6 +12,8 @@ export const adminTitles = reactive<AdminTitles>({ admin_title: '' });
 export function applyAdminTitles(value: unknown) {
   const title = value && typeof value === 'object' && 'admin_title' in value ? value.admin_title : '';
   adminTitles.admin_title = typeof title === 'string' ? title : '';
+  // 品牌字段（品牌名称/登录欢迎语/版权）随同一份数据到达，转交运行态
+  applyBrandBootstrap(value);
 }
 
 export async function loadAdminTitles() {

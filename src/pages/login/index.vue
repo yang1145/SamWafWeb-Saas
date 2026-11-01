@@ -6,9 +6,11 @@
       <div class="brand-blob brand-blob--2" />
       <div class="brand-grid" />
       <div class="brand-content">
-        <span class="brand-badge">{{ BRAND.logoBadge }}</span>
-        <h1 class="brand-title">{{ t('brand.product') }}</h1>
-        <p class="brand-tagline">{{ t('login.welcome_subtitle') }}</p>
+        <!-- 平台「品牌设置」覆盖：Logo 图片 / 品牌名 / 登录欢迎语（未配置走默认） -->
+        <img v-if="brandRuntime.logo" :src="brandRuntime.logo" class="brand-logo-img" alt="logo" />
+        <span v-else class="brand-badge">{{ BRAND.logoBadge }}</span>
+        <h1 class="brand-title">{{ brandDisplayName() }}</h1>
+        <p class="brand-tagline">{{ brandRuntime.loginWelcome || t('login.welcome_subtitle') }}</p>
         <ul class="brand-features">
           <li v-for="f in features" :key="f.title" class="brand-feature">
             <span class="brand-feature-icon"><component :is="f.icon" /></span>
@@ -109,7 +111,8 @@ import { CODE } from '@/utils/request';
 import { getSafeRedirectUrl } from '@/constants';
 import { takeLogoutReason } from '@/utils/localnotice';
 import { adminTitles } from '@/utils/adminTitles';
-import { BRAND, getCopyright } from '@/config/brand';
+import { BRAND } from '@/config/brand';
+import { brandCopyrightText, brandDisplayName, brandRuntime, loadBrandLogo } from '@/config/brandRuntime';
 import ChangePasswordDialog from '@/pages/waf/account/components/ChangePasswordDialog.vue';
 
 const { t } = useI18n();
@@ -117,7 +120,9 @@ const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
 
-const copyright = getCopyright();
+// 品牌运行态：Logo/名称/欢迎语/版权（未配置回落静态默认）
+const copyright = brandCopyrightText();
+void loadBrandLogo();
 
 /** 品牌区价值点：标题 + 描述走 i18n，图标用 TDesign 内置图标 */
 const features = computed(() => [
@@ -251,6 +256,12 @@ function onChangePwdSuccess() {
   position: relative;
   max-width: 460px;
   padding: 48px 40px;
+}
+
+.brand-logo-img {
+  max-height: 44px;
+  max-width: 180px;
+  object-fit: contain;
 }
 
 .brand-badge {
