@@ -361,7 +361,11 @@ export default {
     },
     host: {
       parent_title: "Website Protection",
-      host_title: "Website Protection",
+      group_site_cert: "Sites & Certificates",
+      group_rule: "Protection Rules",
+      group_access: "Access Control",
+      group_ban: "IP Bans",
+      host_title: "Sites",
       host_detail: "Host Protection Details",
       host_protect_rule: "Protection Rules",
       host_protect_rule_edit: "Edit Protection Rules",
@@ -426,6 +430,9 @@ export default {
     },
     system: {
       parent_title: "System Settings",
+      group_audit: "Security & Audit",
+      group_params: "Configuration",
+      group_ops: "Instance Maintenance",
       vpconfig_title: "Manage Configuration",
       host_guard_title: "Remote Brute-force Guard",
       filemanage_title: "File Management",

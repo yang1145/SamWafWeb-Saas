@@ -25,23 +25,68 @@ import { usePermissionStore } from '@/store/modules/permission';
  * MenuContent.toMenuNodes 按权限 store 过滤；导航拦截在 setupPermissionMenuGate
  * 的 beforeEach——租户（含受限套餐）看不到也进不去无权页面，平台侧菜单
  * （租户/套餐/SQL/开放平台/AI/诊断/实例配置）对租户一律不可见。
+ *
+ * 菜单二级子分组：meta.menuGroup（i18n key）标注叶子项归属的子分组，
+ * MenuContent 渲染时按其归并为折叠子菜单——仅影响侧边栏展示层级，
+ * 路由保持扁平、path 不变（书签兼容），未标注的项直出（如升级须知）。
  */
 const wafRoutes: RouteRecordRaw[] = [
   {
     path: 'waf-host',
     meta: { title: 'menu.host.parent_title', icon: markRaw(ApplicationIcon) },
+    // 菜单侧二级子分组用 meta.menuGroup 归并（MenuContent 渲染时折叠为子菜单），
+    // 路由本身保持扁平、path 不变：书签兼容与权限判定均不受影响
     children: [
+      // ── 站点与证书 ──
       {
         path: 'wafhost',
         name: 'WafHost',
         component: () => import('@/pages/waf/host/index.vue'),
-        meta: { title: 'menu.host.host_title', permission: 'host:manage' },
+        meta: { title: 'menu.host.host_title', menuGroup: 'menu.host.group_site_cert', permission: 'host:manage' },
       },
+      {
+        path: 'wafbatchtasklist',
+        name: 'WafBatchTaskList',
+        component: () => import('@/pages/waf/batchtask/index.vue'),
+        // 批量任务在后端属 system:ops 域（虽挂在「网站防护」菜单组下）
+        meta: { title: 'menu.host.batchtask', menuGroup: 'menu.host.group_site_cert', permission: 'system:ops' },
+      },
+      {
+        path: 'wafCDNIP',
+        name: 'WafCDNIP',
+        component: () => import('@/pages/waf/cdnip/index.vue'),
+        meta: { title: 'menu.host.cdn_ip', menuGroup: 'menu.host.group_site_cert', permission: 'host:manage' },
+      },
+      {
+        path: 'wafsslconfiglist',
+        name: 'WafSSLConfigList',
+        component: () => import('@/pages/waf/sslconfig/index.vue'),
+        meta: { title: 'menu.host.sslconfig', menuGroup: 'menu.host.group_site_cert', permission: 'host:manage' },
+      },
+      {
+        path: 'wafsslOrderlist',
+        name: 'WafSSLOrderList',
+        component: () => import('@/pages/waf/sslorder/index.vue'),
+        meta: { title: 'menu.host.sslorder', menuGroup: 'menu.host.group_site_cert', permission: 'host:manage' },
+      },
+      {
+        path: 'wafsslExpirelist',
+        name: 'WafsslExpireList',
+        component: () => import('@/pages/waf/ssl_expire/index.vue'),
+        meta: { title: 'menu.host.ssl_expire', menuGroup: 'menu.host.group_site_cert', permission: 'host:manage' },
+      },
+      {
+        path: 'wafPathRulelist',
+        name: 'WafPathRuleList',
+        component: () => import('@/pages/waf/path_rule/index.vue'),
+        meta: { title: 'menu.host.path_rule', hidden: true, permission: 'host:manage' },
+      },
+      // ── 防护规则 ──
       {
         path: 'wafrule',
         name: 'WafRule',
         component: () => import('@/pages/waf/rule/index.vue'),
-        meta: { title: 'menu.host.host_protect_rule', permission: 'security:policy' },
+        meta: { title: 'menu.host.host_protect_rule', menuGroup: 'menu.host.group_rule', permission: 'security:policy' },
       },
       {
         path: 'wafruleedit',
@@ -50,89 +95,66 @@ const wafRoutes: RouteRecordRaw[] = [
         meta: { title: 'menu.host.host_protect_rule_edit', hidden: true, permission: 'security:policy' },
       },
       {
-        path: 'wafipwhitelist',
-        name: 'WafIpWhiteList',
-        component: () => import('@/pages/waf/ipallow/index.vue'),
-        meta: { title: 'menu.host.allow_ip', permission: 'security:policy' },
-      },
-      {
-        path: 'wafurlwhitelist',
-        name: 'WafUrlWhiteList',
-        component: () => import('@/pages/waf/urlallow/index.vue'),
-        meta: { title: 'menu.host.allow_url', permission: 'security:policy' },
-      },
-      {
-        path: 'wafipBlocklist',
-        name: 'WafIpBlockList',
-        component: () => import('@/pages/waf/ipblock/index.vue'),
-        meta: { title: 'menu.host.deny_ip', permission: 'security:policy' },
-      },
-      {
-        path: 'wafipgroup',
-        name: 'WafIpGroup',
-        component: () => import('@/pages/waf/ipgroup/index.vue'),
-        meta: { title: 'menu.host.ip_group', permission: 'security:policy' },
-      },
-      {
-        path: 'wafurlblocklist',
-        name: 'WafUrlBlockList',
-        component: () => import('@/pages/waf/urlblock/index.vue'),
-        meta: { title: 'menu.host.deny_url', permission: 'security:policy' },
-      },
-      {
-        path: 'wafldpurllist',
-        name: 'WafLdpUrlList',
-        component: () => import('@/pages/waf/ldpurl/index.vue'),
-        meta: { title: 'menu.host.ldp_url', permission: 'security:policy' },
-      },
-      {
         path: 'wafanticclist',
         name: 'WafAntiCCList',
         component: () => import('@/pages/waf/anticc/index.vue'),
-        meta: { title: 'menu.host.cc', permission: 'security:policy' },
+        meta: { title: 'menu.host.cc', menuGroup: 'menu.host.group_rule', permission: 'security:policy' },
       },
       {
         path: 'wafsensitivelist',
         name: 'WafSensitiveList',
         component: () => import('@/pages/waf/sensitive/index.vue'),
-        meta: { title: 'menu.host.sensitive', permission: 'security:policy' },
+        meta: { title: 'menu.host.sensitive', menuGroup: 'menu.host.group_rule', permission: 'security:policy' },
       },
       {
-        path: 'wafsslconfiglist',
-        name: 'WafSSLConfigList',
-        component: () => import('@/pages/waf/sslconfig/index.vue'),
-        meta: { title: 'menu.host.sslconfig', permission: 'host:manage' },
-      },
-      {
-        path: 'wafbatchtasklist',
-        name: 'WafBatchTaskList',
-        component: () => import('@/pages/waf/batchtask/index.vue'),
-        // 批量任务在后端属 system:ops 域（虽挂在「网站防护」菜单组下）
-        meta: { title: 'menu.host.batchtask', permission: 'system:ops' },
-      },
-      {
-        path: 'wafsslOrderlist',
-        name: 'WafSSLOrderList',
-        component: () => import('@/pages/waf/sslorder/index.vue'),
-        meta: { title: 'menu.host.sslorder', permission: 'host:manage' },
-      },
-      {
-        path: 'wafsslExpirelist',
-        name: 'WafsslExpireList',
-        component: () => import('@/pages/waf/ssl_expire/index.vue'),
-        meta: { title: 'menu.host.ssl_expire', permission: 'host:manage' },
+        path: 'wafldpurllist',
+        name: 'WafLdpUrlList',
+        component: () => import('@/pages/waf/ldpurl/index.vue'),
+        meta: { title: 'menu.host.ldp_url', menuGroup: 'menu.host.group_rule', permission: 'security:policy' },
       },
       {
         path: 'wafBlockingPagelist',
         name: 'WafBlockingPagelist',
         component: () => import('@/pages/waf/bLocking_page/index.vue'),
-        meta: { title: 'menu.host.blocking_page', permission: 'host:manage' },
+        meta: { title: 'menu.host.blocking_page', menuGroup: 'menu.host.group_rule', permission: 'host:manage' },
       },
+      // ── 访问控制（黑白名单）──
+      {
+        path: 'wafipwhitelist',
+        name: 'WafIpWhiteList',
+        component: () => import('@/pages/waf/ipallow/index.vue'),
+        meta: { title: 'menu.host.allow_ip', menuGroup: 'menu.host.group_access', permission: 'security:policy' },
+      },
+      {
+        path: 'wafurlwhitelist',
+        name: 'WafUrlWhiteList',
+        component: () => import('@/pages/waf/urlallow/index.vue'),
+        meta: { title: 'menu.host.allow_url', menuGroup: 'menu.host.group_access', permission: 'security:policy' },
+      },
+      {
+        path: 'wafipBlocklist',
+        name: 'WafIpBlockList',
+        component: () => import('@/pages/waf/ipblock/index.vue'),
+        meta: { title: 'menu.host.deny_ip', menuGroup: 'menu.host.group_access', permission: 'security:policy' },
+      },
+      {
+        path: 'wafurlblocklist',
+        name: 'WafUrlBlockList',
+        component: () => import('@/pages/waf/urlblock/index.vue'),
+        meta: { title: 'menu.host.deny_url', menuGroup: 'menu.host.group_access', permission: 'security:policy' },
+      },
+      {
+        path: 'wafipgroup',
+        name: 'WafIpGroup',
+        component: () => import('@/pages/waf/ipgroup/index.vue'),
+        meta: { title: 'menu.host.ip_group', menuGroup: 'menu.host.group_access', permission: 'security:policy' },
+      },
+      // ── IP 封禁 ──
       {
         path: 'wafIPBan',
         name: 'WafIPBan',
         component: () => import('@/pages/waf/ip_ban/index.vue'),
-        meta: { title: 'menu.host.ip_ban', keepAlive: false, permission: 'security:policy' },
+        meta: { title: 'menu.host.ip_ban', keepAlive: false, menuGroup: 'menu.host.group_ban', permission: 'security:policy' },
       },
       {
         path: 'wafIPFailure',
@@ -152,49 +174,13 @@ const wafRoutes: RouteRecordRaw[] = [
         path: 'wafFirewallIPBlock',
         name: 'WafFirewallIPBlock',
         component: () => import('@/pages/waf/firewall_ipblock/index.vue'),
-        meta: { title: 'menu.host.firewall_ip_block', permission: 'security:policy' },
+        meta: { title: 'menu.host.firewall_ip_block', menuGroup: 'menu.host.group_ban', permission: 'security:policy' },
       },
       {
         path: 'wafThreatIP',
         name: 'WafThreatIP',
         component: () => import('@/pages/waf/threatip/index.vue'),
-        meta: { title: 'menu.host.threat_ip', permission: 'security:policy' },
-      },
-      {
-        path: 'wafCDNIP',
-        name: 'WafCDNIP',
-        component: () => import('@/pages/waf/cdnip/index.vue'),
-        meta: { title: 'menu.host.cdn_ip', permission: 'host:manage' },
-      },
-      {
-        path: 'wafPathRulelist',
-        name: 'WafPathRuleList',
-        component: () => import('@/pages/waf/path_rule/index.vue'),
-        meta: { title: 'menu.host.path_rule', hidden: true, permission: 'host:manage' },
-      },
-    ],
-  },
-  {
-    path: 'wafanalysis',
-    meta: { title: 'menu.analysis.parent_title', icon: markRaw(SystemLogIcon) },
-    children: [
-      {
-        path: 'wafanalysislog',
-        name: 'WafAnalysisLog',
-        component: () => import('@/pages/waf/analysis/index.vue'),
-        meta: { title: 'menu.analysis.analysis_title', permission: 'dashboard:view' },
-      },
-      {
-        path: 'wafanalysisSpiderlog',
-        name: 'WafAnalysisSpiderLog',
-        component: () => import('@/pages/waf/analysis/SpiderActive.vue'),
-        meta: { title: 'menu.analysis.analysis_spider_title', permission: 'dashboard:view' },
-      },
-      {
-        path: 'wafanalysissourcepath',
-        name: 'WafAnalysisSourcePath',
-        component: () => import('@/pages/waf/analysis/SourcePath.vue'),
-        meta: { title: 'menu.analysis.analysis_source_path_title', permission: 'dashboard:view' },
+        meta: { title: 'menu.host.threat_ip', menuGroup: 'menu.host.group_ban', permission: 'security:policy' },
       },
     ],
   },
@@ -229,27 +215,26 @@ const wafRoutes: RouteRecordRaw[] = [
     ],
   },
   {
-    path: 'tunnel',
-    meta: { title: 'menu.tunnel.parent_title', icon: markRaw(ForkIcon) },
+    path: 'wafanalysis',
+    meta: { title: 'menu.analysis.parent_title', icon: markRaw(SystemLogIcon) },
     children: [
       {
-        path: 'Tunnel',
-        name: 'Tunnel',
-        component: () => import('@/pages/waf/tunnel/index.vue'),
-        meta: { title: 'menu.tunnel.list_title', permission: 'host:manage' },
+        path: 'wafanalysislog',
+        name: 'WafAnalysisLog',
+        component: () => import('@/pages/waf/analysis/index.vue'),
+        meta: { title: 'menu.analysis.analysis_title', permission: 'dashboard:view' },
       },
-    ],
-  },
-  {
-    path: 'application',
-    meta: { title: 'menu.application.parent_title', icon: markRaw(ServerIcon) },
-    children: [
       {
-        path: 'AppList',
-        name: 'AppList',
-        // 应用管理属平台域（可执行任意命令的实例级资源），租户不可见
-        component: () => import('@/pages/waf/application/index.vue'),
-        meta: { title: 'menu.application.list_title', permission: 'platform:admin' },
+        path: 'wafanalysisSpiderlog',
+        name: 'WafAnalysisSpiderLog',
+        component: () => import('@/pages/waf/analysis/SpiderActive.vue'),
+        meta: { title: 'menu.analysis.analysis_spider_title', permission: 'dashboard:view' },
+      },
+      {
+        path: 'wafanalysissourcepath',
+        name: 'WafAnalysisSourcePath',
+        component: () => import('@/pages/waf/analysis/SourcePath.vue'),
+        meta: { title: 'menu.analysis.analysis_source_path_title', permission: 'dashboard:view' },
       },
     ],
   },
@@ -276,6 +261,18 @@ const wafRoutes: RouteRecordRaw[] = [
         name: 'WafAccessSession',
         component: () => import('@/pages/waf/access_session/index.vue'),
         meta: { title: 'menu.access.session', permission: 'security:policy' },
+      },
+    ],
+  },
+  {
+    path: 'tunnel',
+    meta: { title: 'menu.tunnel.parent_title', icon: markRaw(ForkIcon) },
+    children: [
+      {
+        path: 'Tunnel',
+        name: 'Tunnel',
+        component: () => import('@/pages/waf/tunnel/index.vue'),
+        meta: { title: 'menu.tunnel.list_title', permission: 'host:manage' },
       },
     ],
   },
@@ -318,6 +315,154 @@ const wafRoutes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: 'notify',
+    meta: { title: 'menu.notify.parent_title', icon: markRaw(NotificationIcon) },
+    children: [
+      {
+        path: 'channel',
+        name: 'NotifyChannel',
+        component: () => import('@/pages/waf/notify_channel/index.vue'),
+        meta: { title: 'menu.notify.channel_title', permission: 'system:ops' },
+      },
+      {
+        path: 'subscription',
+        name: 'NotifySubscription',
+        component: () => import('@/pages/waf/notify_subscription/index.vue'),
+        meta: { title: 'menu.notify.subscription_title', permission: 'system:ops' },
+      },
+      {
+        path: 'log',
+        name: 'NotifyLog',
+        component: () => import('@/pages/waf/notify_log/index.vue'),
+        meta: { title: 'menu.notify.log_title', permission: 'system:ops' },
+      },
+    ],
+  },
+  {
+    path: 'sys',
+    meta: { title: 'menu.system.parent_title', icon: markRaw(SystemSettingIcon) },
+    // 与「网站防护」一致：meta.menuGroup 归并二级子分组，路由 path 保持不变
+    children: [
+      {
+        path: 'UpgradeNotice',
+        name: 'UpgradeNotice',
+        // 升级须知属基础组（登录即可见，无权限码），作为直出项放在组首
+        component: () => import('@/pages/waf/upgradenotice/index.vue'),
+        meta: { title: 'menu.system.upgrade_notice_title' },
+      },
+      // ── 安全与审计 ──
+      {
+        path: 'HostGuard',
+        name: 'HostGuard',
+        component: () => import('@/pages/waf/hostguard/index.vue'),
+        meta: { title: 'menu.system.host_guard_title', menuGroup: 'menu.system.group_audit', permission: 'platform:admin' },
+      },
+      {
+        path: 'SysLog',
+        name: 'SysLog',
+        component: () => import('@/pages/waf/syslog/index.vue'),
+        meta: { title: 'menu.system.system_log_title', menuGroup: 'menu.system.group_audit', permission: 'audit:view' },
+      },
+      {
+        path: 'wafaccessaudit',
+        name: 'WafAccessAudit',
+        component: () => import('@/pages/waf/access_audit/index.vue'),
+        meta: { title: 'menu.system.security_audit_title', menuGroup: 'menu.system.group_audit', permission: 'audit:view' },
+      },
+      // ── 参数配置 ──
+      {
+        path: 'VpConfig',
+        name: 'VpConfig',
+        component: () => import('@/pages/waf/vpconfig/index.vue'),
+        meta: { title: 'menu.system.vpconfig_title', menuGroup: 'menu.system.group_params', permission: 'platform:admin' },
+      },
+      {
+        path: 'SystemConfig',
+        name: 'SystemConfig',
+        // 参数设置是实例级全局配置（system:config，租户套餐不含该码）
+        component: () => import('@/pages/waf/systemconfig/index.vue'),
+        meta: { title: 'menu.system.system_config_title', menuGroup: 'menu.system.group_params', permission: 'system:config' },
+      },
+      {
+        path: 'PrivateInfo',
+        name: 'PrivateInfo',
+        // 密钥管理存储云厂商 AK/SK 等凭据，后端已移入平台域（tokenPlatformGroup），
+        // 租户一律不可见（原 security:policy，与后端迁移同步）
+        component: () => import('@/pages/waf/private_info/index.vue'),
+        meta: { title: 'menu.system.private_info_title', menuGroup: 'menu.system.group_params', permission: 'platform:admin' },
+      },
+      {
+        path: 'DataRetention',
+        name: 'DataRetention',
+        component: () => import('@/pages/waf/data_retention/index.vue'),
+        meta: { title: 'menu.system.data_retention_title', menuGroup: 'menu.system.group_params', permission: 'platform:admin' },
+      },
+      {
+        path: 'OwaspManage',
+        name: 'OwaspManage',
+        // OWASP 规则管理后端已从 security:policy 移入 system:config 域：
+        // 引擎与 override 注册表/tuning 均为实例全局单例，租户改写影响全部租户
+        component: () => import('@/pages/waf/owasp/index.vue'),
+        meta: { title: 'menu.system.owasp_title', menuGroup: 'menu.system.group_params', permission: 'system:config' },
+      },
+      {
+        path: 'AIModelManage',
+        name: 'AIModelManage',
+        // AI 模型管理属平台域（模型被引擎加载、训练数据出库）
+        component: () => import('@/pages/waf/ai/index.vue'),
+        meta: { title: 'menu.system.ai_title', menuGroup: 'menu.system.group_params', permission: 'platform:admin' },
+      },
+      // ── 实例运维 ──
+      {
+        path: 'FileManage',
+        name: 'FileManage',
+        component: () => import('@/pages/waf/filemanage/index.vue'),
+        meta: { title: 'menu.system.filemanage_title', menuGroup: 'menu.system.group_ops', permission: 'platform:admin' },
+      },
+      {
+        path: 'IPLocation',
+        name: 'IPLocation',
+        component: () => import('@/pages/waf/iplocation/index.vue'),
+        meta: { title: 'menu.system.iplocation_title', menuGroup: 'menu.system.group_ops', permission: 'log:view' },
+      },
+      {
+        path: 'OneKeyMod',
+        name: 'OneKeyMod',
+        // 一键修改后端已移入平台域（tokenPlatformGroup）：直接读写服务器本机
+        // nginx conf 文件，属实例级文件基础设施，租户不可见（原 host:manage）
+        component: () => import('@/pages/waf/onekeymod/index.vue'),
+        meta: { title: 'menu.system.system_one_key_modify_title', menuGroup: 'menu.system.group_ops', permission: 'platform:admin' },
+      },
+      {
+        path: 'task',
+        name: 'Task',
+        // 任务管理是实例级资源（system:config 域，随本轮从 system:ops 拆出）
+        component: () => import('@/pages/waf/task/index.vue'),
+        meta: { title: 'menu.system.task', menuGroup: 'menu.system.group_ops', permission: 'system:config' },
+      },
+      {
+        path: 'RumtimeSysteminfo',
+        name: 'RumtimeSysteminfo',
+        component: () => import('@/pages/waf/sysruntime/index.vue'),
+        meta: { title: 'menu.system.system_runtime_title', menuGroup: 'menu.system.group_ops', permission: 'dashboard:view' },
+      },
+      {
+        path: 'RunDiagnostic',
+        name: 'RunDiagnostic',
+        // 运行诊断属平台侧（进程内部状态导出）
+        component: () => import('@/pages/waf/diagnostic/index.vue'),
+        meta: { title: 'menu.system.diagnostic_title', menuGroup: 'menu.system.group_ops', permission: 'platform:admin' },
+      },
+      {
+        path: 'sqlquery',
+        name: 'SqlQuery',
+        // SQL 查询直接执行数据库语句，极度敏感，平台域专属
+        component: () => import('@/pages/waf/sqlquery/index.vue'),
+        meta: { title: 'menu.system.sql_query_title', menuGroup: 'menu.system.group_ops', permission: 'platform:admin' },
+      },
+    ],
+  },
+  {
     // 商业化分组：SaaS 运营的平台侧能力（租户生命周期/套餐差异化/品牌白标），
     // 从「系统设置」独立出来——它们是运营动作而不是系统参数，全部 platform:admin
     path: 'commercial',
@@ -344,146 +489,15 @@ const wafRoutes: RouteRecordRaw[] = [
     ],
   },
   {
-    path: 'sys',
-    meta: { title: 'menu.system.parent_title', icon: markRaw(SystemSettingIcon) },
+    path: 'application',
+    meta: { title: 'menu.application.parent_title', icon: markRaw(ServerIcon) },
     children: [
       {
-        path: 'VpConfig',
-        name: 'VpConfig',
-        component: () => import('@/pages/waf/vpconfig/index.vue'),
-        meta: { title: 'menu.system.vpconfig_title', permission: 'platform:admin' },
-      },
-      {
-        path: 'HostGuard',
-        name: 'HostGuard',
-        component: () => import('@/pages/waf/hostguard/index.vue'),
-        meta: { title: 'menu.system.host_guard_title', permission: 'platform:admin' },
-      },
-      {
-        path: 'FileManage',
-        name: 'FileManage',
-        component: () => import('@/pages/waf/filemanage/index.vue'),
-        meta: { title: 'menu.system.filemanage_title', permission: 'platform:admin' },
-      },
-      {
-        path: 'IPLocation',
-        name: 'IPLocation',
-        component: () => import('@/pages/waf/iplocation/index.vue'),
-        meta: { title: 'menu.system.iplocation_title', permission: 'log:view' },
-      },
-      {
-        path: 'SysLog',
-        name: 'SysLog',
-        component: () => import('@/pages/waf/syslog/index.vue'),
-        meta: { title: 'menu.system.system_log_title', permission: 'audit:view' },
-      },
-      {
-        path: 'wafaccessaudit',
-        name: 'WafAccessAudit',
-        component: () => import('@/pages/waf/access_audit/index.vue'),
-        meta: { title: 'menu.system.security_audit_title', permission: 'audit:view' },
-      },
-      {
-        path: 'SystemConfig',
-        name: 'SystemConfig',
-        // 参数设置是实例级全局配置（system:config，租户套餐不含该码）
-        component: () => import('@/pages/waf/systemconfig/index.vue'),
-        meta: { title: 'menu.system.system_config_title', permission: 'system:config' },
-      },
-      {
-        path: 'UpgradeNotice',
-        name: 'UpgradeNotice',
-        // 升级须知属基础组（登录即可见，无权限码）
-        component: () => import('@/pages/waf/upgradenotice/index.vue'),
-        meta: { title: 'menu.system.upgrade_notice_title' },
-      },
-      {
-        path: 'PrivateInfo',
-        name: 'PrivateInfo',
-        // 密钥管理存储云厂商 AK/SK 等凭据，后端已移入平台域（tokenPlatformGroup），
-        // 租户一律不可见（原 security:policy，与后端迁移同步）
-        component: () => import('@/pages/waf/private_info/index.vue'),
-        meta: { title: 'menu.system.private_info_title', permission: 'platform:admin' },
-      },
-      {
-        path: 'DataRetention',
-        name: 'DataRetention',
-        component: () => import('@/pages/waf/data_retention/index.vue'),
-        meta: { title: 'menu.system.data_retention_title', permission: 'platform:admin' },
-      },
-      {
-        path: 'OwaspManage',
-        name: 'OwaspManage',
-        // OWASP 规则管理后端已从 security:policy 移入 system:config 域：
-        // 引擎与 override 注册表/tuning 均为实例全局单例，租户改写影响全部租户
-        component: () => import('@/pages/waf/owasp/index.vue'),
-        meta: { title: 'menu.system.owasp_title', permission: 'system:config' },
-      },
-      {
-        path: 'AIModelManage',
-        name: 'AIModelManage',
-        // AI 模型管理属平台域（模型被引擎加载、训练数据出库）
-        component: () => import('@/pages/waf/ai/index.vue'),
-        meta: { title: 'menu.system.ai_title', permission: 'platform:admin' },
-      },
-      {
-        path: 'RumtimeSysteminfo',
-        name: 'RumtimeSysteminfo',
-        component: () => import('@/pages/waf/sysruntime/index.vue'),
-        meta: { title: 'menu.system.system_runtime_title', permission: 'dashboard:view' },
-      },
-      {
-        path: 'RunDiagnostic',
-        name: 'RunDiagnostic',
-        // 运行诊断属平台域（进程内部状态导出）
-        component: () => import('@/pages/waf/diagnostic/index.vue'),
-        meta: { title: 'menu.system.diagnostic_title', permission: 'platform:admin' },
-      },
-      {
-        path: 'OneKeyMod',
-        name: 'OneKeyMod',
-        // 一键修改后端已移入平台域（tokenPlatformGroup）：直接读写服务器本机
-        // nginx conf 文件，属实例级文件基础设施，租户不可见（原 host:manage）
-        component: () => import('@/pages/waf/onekeymod/index.vue'),
-        meta: { title: 'menu.system.system_one_key_modify_title', permission: 'platform:admin' },
-      },
-      {
-        path: 'task',
-        name: 'Task',
-        // 任务管理是实例级资源（system:config 域，随本轮从 system:ops 拆出）
-        component: () => import('@/pages/waf/task/index.vue'),
-        meta: { title: 'menu.system.task', permission: 'system:config' },
-      },
-      {
-        path: 'sqlquery',
-        name: 'SqlQuery',
-        // SQL 查询直接执行数据库语句，极度敏感，平台域专属
-        component: () => import('@/pages/waf/sqlquery/index.vue'),
-        meta: { title: 'menu.system.sql_query_title', permission: 'platform:admin' },
-      },
-    ],
-  },
-  {
-    path: 'notify',
-    meta: { title: 'menu.notify.parent_title', icon: markRaw(NotificationIcon) },
-    children: [
-      {
-        path: 'channel',
-        name: 'NotifyChannel',
-        component: () => import('@/pages/waf/notify_channel/index.vue'),
-        meta: { title: 'menu.notify.channel_title', permission: 'system:ops' },
-      },
-      {
-        path: 'subscription',
-        name: 'NotifySubscription',
-        component: () => import('@/pages/waf/notify_subscription/index.vue'),
-        meta: { title: 'menu.notify.subscription_title', permission: 'system:ops' },
-      },
-      {
-        path: 'log',
-        name: 'NotifyLog',
-        component: () => import('@/pages/waf/notify_log/index.vue'),
-        meta: { title: 'menu.notify.log_title', permission: 'system:ops' },
+        path: 'AppList',
+        name: 'AppList',
+        // 应用管理属平台域（可执行任意命令的实例级资源），租户不可见
+        component: () => import('@/pages/waf/application/index.vue'),
+        meta: { title: 'menu.application.list_title', permission: 'platform:admin' },
       },
     ],
   },
