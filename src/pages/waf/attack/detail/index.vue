@@ -63,10 +63,10 @@
                 {{ t('page.visit_log.detail.fp_report') }}
               </t-button>
             </t-tooltip>
-            <t-button v-if="isOwaspRule" variant="outline" theme="default" @click="goToOwaspRule">
+            <t-button v-if="isOwaspRule && isPlatform" variant="outline" theme="default" @click="goToOwaspRule">
               {{ t('page.visit_log.detail.owasp_view_rule') }}
             </t-button>
-            <t-button v-if="isOwaspRule" variant="outline" theme="default" @click="goToOwaspSandbox">
+            <t-button v-if="isOwaspRule && isPlatform" variant="outline" theme="default" @click="goToOwaspSandbox">
               {{ t('page.visit_log.detail.owasp_sandbox_test') }}
             </t-button>
             <t-button v-if="!isEmbedded" variant="text" theme="default" @click="backPage">
@@ -385,6 +385,7 @@ import {
 } from 'tdesign-icons-vue-next';
 
 import bus from '@/utils/bus';
+import { usePermissionStore } from '@/store/modules/permission';
 import { geWebLogDetail, getHeaderCopyDetail } from '@/apis/waflog/attacklog';
 import { wafIPBlockAddApi } from '@/apis/ipblock';
 import { edit_system_config_api, get_detail_by_item_api } from '@/apis/systemconfig';
@@ -457,6 +458,8 @@ const isOwaspRule = computed(() => {
   const rule = detail_data.value.rule || '';
   return rule.startsWith('OWASP:');
 });
+// OWASP 规则管理已移入系统设置域（system:config），跳转入口仅平台侧可见
+const isPlatform = computed(() => usePermissionStore().isPlatform);
 const owaspRuleId = computed(() => {
   const rule = detail_data.value.rule || '';
   const m = rule.match(/^OWASP:(\d+)/);

@@ -621,6 +621,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 
 import { decryptIncoming } from '@/utils/seccrypto';
+import { usePermissionStore } from '@/store/modules/permission';
 import { getOnlineUrl } from '@/utils/usuallytool';
 import { API_HOST } from '@/config/host';
 import { SSL_STATUS } from '@/constants';
@@ -1370,11 +1371,13 @@ function onBatchMenuClick(data: any) {
 }
 
 function importExportMenuOptions() {
-  return [
+  const options = [
     { content: t('page.host.export_data'), value: 'export' },
     { content: t('page.host.import_data'), value: 'import' },
-    { content: t('page.host.import_nginx'), value: 'nginx' },
+    // 一键修改（Nginx 导入）已移入平台域，租户不出现该入口
+    ...(usePermissionStore().isPlatform ? [{ content: t('page.host.import_nginx'), value: 'nginx' }] : []),
   ];
+  return options;
 }
 
 function onImportExportMenuClick(data: any) {

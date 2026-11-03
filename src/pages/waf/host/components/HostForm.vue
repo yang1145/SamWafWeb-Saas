@@ -1016,6 +1016,7 @@ import { sslConfigListApi, sslConfigAddApi, sslConfigEditApi } from '@/apis/sslc
 import { wafIPGroupOptionsApi } from '@/apis/ipgroup';
 import { checkHostPorts, testHostHealth } from '@/apis/host';
 import { getOrDefault } from '@/utils/usuallytool';
+import { usePermissionStore } from '@/store/modules/permission';
 import { get_detail_by_item_api, edit_system_config_by_item_api } from '@/apis/systemconfig';
 import { wafCDNProviderInfoApi } from '@/apis/cdnip';
 import { addHostGroup } from '@/apis/hostgroup';
@@ -1596,6 +1597,8 @@ const defenseColumns = computed(() => [
 ]);
 
 // 引擎自带防护行（src 决定开关绑定到 defense_json 各项 或 各子配置的 is_enable）
+// 跳转系统设置域的入口（OWASP/AI 模型管理）仅平台侧可见，租户只留开关
+const isPlatform = usePermissionStore().isPlatform;
 const defenseRows = computed(() => [
   { key: 'bot', src: 'defense', label: t('page.host.bot_detection'), tips: t('page.host.bot_detection_tips') },
   { key: 'sqli', src: 'defense', label: t('page.host.sql_injection_detection'), tips: t('page.host.sql_injection_detection_tips') },
@@ -1604,8 +1607,8 @@ const defenseRows = computed(() => [
   { key: 'rce', src: 'defense', label: t('page.host.rce_detection'), tips: t('page.host.rce_detection_tips') },
   { key: 'sensitive', src: 'defense', label: t('page.host.sensitive_detection'), tips: t('page.host.sensitive_detection_tips') },
   { key: 'traversal', src: 'defense', label: t('page.host.dir_traversal_detection'), tips: t('page.host.dir_traversal_detection_tips') },
-  { key: 'owaspset', src: 'defense', label: t('page.host.owaspset_detection'), tips: t('page.host.owaspset_detection_tips'), action: { type: 'route', path: '/sys/OwaspManage', text: t('page.host.owasp_manage_link') } },
-  { key: 'ai', src: 'defense', label: t('page.host.ai_detection'), tips: t('page.host.ai_detection_tips'), action: { type: 'route', path: '/sys/AIModelManage', text: t('page.host.ai_manage_link') } },
+  { key: 'owaspset', src: 'defense', label: t('page.host.owaspset_detection'), tips: t('page.host.owaspset_detection_tips'), ...(isPlatform ? { action: { type: 'route', path: '/sys/OwaspManage', text: t('page.host.owasp_manage_link') } } : {}) },
+  { key: 'ai', src: 'defense', label: t('page.host.ai_detection'), tips: t('page.host.ai_detection_tips'), ...(isPlatform ? { action: { type: 'route', path: '/sys/AIModelManage', text: t('page.host.ai_manage_link') } } : {}) },
   { key: 'cookie', src: 'cookie', label: t('page.host.tab_cookie_security'), tips: t('page.host.cookie_security.intro'), action: { type: 'tab', tab: 16 } },
   { key: 'csrf', src: 'csrf', label: t('page.host.tab_csrf'), tips: t('page.host.csrf.intro'), action: { type: 'tab', tab: 17 } },
   { key: 'tamper', src: 'tamper', label: t('page.host.tab_tamper'), tips: t('page.host.tamper.intro'), action: { type: 'tab', tab: 18 } },

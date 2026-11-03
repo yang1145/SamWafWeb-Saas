@@ -400,8 +400,10 @@ const wafRoutes: RouteRecordRaw[] = [
       {
         path: 'PrivateInfo',
         name: 'PrivateInfo',
+        // 密钥管理存储云厂商 AK/SK 等凭据，后端已移入平台域（tokenPlatformGroup），
+        // 租户一律不可见（原 security:policy，与后端迁移同步）
         component: () => import('@/pages/waf/private_info/index.vue'),
-        meta: { title: 'menu.system.private_info_title', permission: 'security:policy' },
+        meta: { title: 'menu.system.private_info_title', permission: 'platform:admin' },
       },
       {
         path: 'DataRetention',
@@ -412,8 +414,10 @@ const wafRoutes: RouteRecordRaw[] = [
       {
         path: 'OwaspManage',
         name: 'OwaspManage',
+        // OWASP 规则管理后端已从 security:policy 移入 system:config 域：
+        // 引擎与 override 注册表/tuning 均为实例全局单例，租户改写影响全部租户
         component: () => import('@/pages/waf/owasp/index.vue'),
-        meta: { title: 'menu.system.owasp_title', permission: 'security:policy' },
+        meta: { title: 'menu.system.owasp_title', permission: 'system:config' },
       },
       {
         path: 'AIModelManage',
@@ -438,8 +442,10 @@ const wafRoutes: RouteRecordRaw[] = [
       {
         path: 'OneKeyMod',
         name: 'OneKeyMod',
+        // 一键修改后端已移入平台域（tokenPlatformGroup）：直接读写服务器本机
+        // nginx conf 文件，属实例级文件基础设施，租户不可见（原 host:manage）
         component: () => import('@/pages/waf/onekeymod/index.vue'),
-        meta: { title: 'menu.system.system_one_key_modify_title', permission: 'host:manage' },
+        meta: { title: 'menu.system.system_one_key_modify_title', permission: 'platform:admin' },
       },
       {
         path: 'task',
