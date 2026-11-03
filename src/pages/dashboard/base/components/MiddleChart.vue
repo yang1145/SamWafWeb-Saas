@@ -122,9 +122,7 @@ function loadSumDayRange() {
             outchartarr: rangeNormalArray.value,
           }),
         );
-        countChart?.setOption(
-          getPieChartDataSet({ attackCount: rangeSumAttackCount.value, normalCount: rangeSumNormalCount.value }),
-        );
+        renderPieChart();
       }
     })
     .catch((e: Error) => {
@@ -169,7 +167,24 @@ function renderCharts() {
   // 攻击/正常占比
   const countContainer = document.getElementById('countContainer');
   countChart = echarts.init(countContainer);
-  countChart.setOption(getPieChartDataSet({ attackCount: rangeSumAttackCount.value, normalCount: rangeSumNormalCount.value }));
+  renderPieChart();
+}
+
+/**
+ * 占比环形图渲染：全 0 时 echarts 会把两个零值扇区各画成半圈，
+ * 还带上「0.0% 正常访问占比」中心标签，与空态遮罩（图标+暂无数据）全部
+ * 叠在同一处非常怪——此时直接清空画布，只留空态遮罩。
+ */
+function renderPieChart() {
+  if (!countChart) return;
+  if (isPieEmpty.value) {
+    countChart.clear();
+    return;
+  }
+  countChart.setOption(
+    getPieChartDataSet({ attackCount: rangeSumAttackCount.value, normalCount: rangeSumNormalCount.value }),
+    true,
+  );
 }
 </script>
 
