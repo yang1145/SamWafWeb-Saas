@@ -35,6 +35,8 @@ const PROBE_TARGETS: { code: string; url: string; method: 'get' | 'post'; data?:
   { code: 'platform:admin', url: 'tenant/list', method: 'post', data: { pageIndex: 1, pageSize: 1 } },
   // permission:manage → 权限组管理
   { code: 'permission:manage', url: 'permission/group/list', method: 'post', data: { pageIndex: 1, pageSize: 1 } },
+  // ai:assistant → AI 助手（对话/扫描/配置变更，后端 status 是最轻只读端点）
+  { code: 'ai:assistant', url: 'ai/assistant/status', method: 'get' },
 ];
 
 /**

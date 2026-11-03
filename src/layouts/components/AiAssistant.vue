@@ -6,6 +6,28 @@
           <span class="chat-header-title">{{ t('page.gpt.assistant') }}</span>
           <span v-if="sceneLabel" class="chat-header-scene">{{ sceneLabel }}</span>
           <div class="chat-header-ops">
+            <div v-if="canUseAIAssistant" class="mode-switch">
+              <t-button
+                variant="text"
+                size="small"
+                :theme="configMode ? 'default' : 'primary'"
+                :disabled="isStreaming"
+                @click="switchMode('chat')"
+              >
+                {{ t('page.gpt.mode_chat') }}
+              </t-button>
+              <t-tooltip :content="t('page.gpt.mode_config_tip')">
+                <t-button
+                  variant="text"
+                  size="small"
+                  :theme="configMode ? 'primary' : 'default'"
+                  :disabled="isStreaming"
+                  @click="switchMode('config')"
+                >
+                  {{ t('page.gpt.mode_config') }}
+                </t-button>
+              </t-tooltip>
+            </div>
             <t-tooltip :content="t('page.gpt.clear_chat')">
               <t-button
                 variant="text"
@@ -17,7 +39,7 @@
                 <clear-icon />
               </t-button>
             </t-tooltip>
-            <t-tooltip :content="t('page.gpt.config.entry')">
+            <t-tooltip v-if="isPlatform" :content="t('page.gpt.config.entry')">
               <t-button variant="text" shape="square" size="small" @click="gptConfigVisible = true">
                 <setting-icon />
               </t-button>
@@ -34,16 +56,20 @@
         <div v-else-if="gptChecked && !gptHasToken" class="gpt-unset">
           <error-circle-icon class="gpt-unset-icon" />
           <div class="gpt-unset-title">{{ t('page.gpt.unset_title') }}</div>
-          <div class="gpt-unset-desc">{{ t('page.gpt.unset_desc') }}</div>
-          <t-button theme="primary" @click="gptConfigVisible = true">{{ t('page.gpt.unset_action') }}</t-button>
-          <div class="gpt-unset-hint">{{ t('page.gpt.unset_hint') }}</div>
+          <div class="gpt-unset-desc">{{ isPlatform ? t('page.gpt.unset_desc') : t('page.gpt.unset_desc_tenant') }}</div>
+          <t-button v-if="isPlatform" theme="primary" @click="gptConfigVisible = true">{{ t('page.gpt.unset_action') }}</t-button>
+          <div class="gpt-unset-hint">{{ isPlatform ? t('page.gpt.unset_hint') : t('page.gpt.unset_hint_tenant') }}</div>
         </div>
 
         <!-- 空态：告诉用户这里能问什么，点一下就能开聊 -->
         <div v-else-if="questionList.length === 0" class="chat-welcome">
           <div class="welcome-avatar"><logo-android-icon /></div>
-          <div class="welcome-title">{{ t('page.gpt.welcome_title') }}</div>
-          <div class="welcome-desc">{{ t('page.gpt.welcome_desc') }}</div>
+          <div class="welcome-title">
+            {{ configMode ? t('page.gpt.config_welcome_title') : t('page.gpt.welcome_title') }}
+          </div>
+          <div class="welcome-desc">
+            {{ configMode ? t('page.gpt.config_welcome_desc') : t('page.gpt.welcome_desc') }}
+          </div>
           <div class="welcome-suggest-title">{{ t('page.gpt.suggest_title') }}</div>
           <div class="suggest-list">
             <div v-for="(s, sIndex) in suggestions" :key="sIndex" class="suggest-item" @click="useSuggestion(s)">
@@ -77,6 +103,50 @@
                 </div>
                 <!-- eslint-disable-next-line vue/no-v-html -->
                 <div v-else class="text" v-html="convertMarkdown(item.content)"></div>
+                <!-- 配置助手：AI 执行的工具回执 -->
+                <div
+                  v-if="item.role === 'assistant' && item.toolTraces && item.toolTraces.length && !item.loading"
+                  class="tool-traces"
+                >
+                  <div class="tool-traces-title">{{ t('page.gpt.tool_trace_title') }}（{{ item.toolTraces.length }}）</div>
+                  <div v-for="(tr, trIndex) in item.toolTraces" :key="trIndex" class="tool-trace-item">
+                    <span class="tool-trace-dot" :class="tr.ok ? 'ok' : 'fail'"></span>
+                    <span class="tool-trace-name">{{ tr.tool }}</span>
+                    <span class="tool-trace-summary">{{ tr.summary }}</span>
+                  </div>
+                </div>
+                <!-- 配置助手：待确认变更草案卡片 -->
+                <div v-if="item.drafts && item.drafts.length && !item.loading" class="draft-list">
+                  <div v-for="draft in item.drafts" :key="draft.draft_id" class="draft-card" :class="'draft-' + draft.state">
+                    <div class="draft-head">
+                      <span class="draft-title">{{ draft.title }}</span>
+                      <t-tag v-if="draft.state === 'pending'" theme="warning" size="small" variant="light">
+                        {{ t('page.gpt.draft_badge_pending') }}
+                      </t-tag>
+                      <t-tag v-else-if="draft.state === 'applied'" theme="success" size="small" variant="light">
+                        {{ t('page.gpt.draft_badge_applied') }}
+                      </t-tag>
+                      <t-tag v-else-if="draft.state === 'discarded'" theme="default" size="small" variant="light">
+                        {{ t('page.gpt.draft_badge_discarded') }}
+                      </t-tag>
+                      <t-tag v-else-if="draft.state === 'failed'" theme="danger" size="small" variant="light">
+                        {{ t('page.gpt.draft_badge_failed') }}
+                      </t-tag>
+                    </div>
+                    <div v-if="draft.state === 'pending'" class="draft-ops">
+                      <template v-if="aiWriteEnabled">
+                        <t-button theme="primary" size="small" @click="confirmDraft(draft)">
+                          {{ t('page.gpt.draft_confirm') }}
+                        </t-button>
+                        <t-button variant="outline" size="small" @click="discardDraft(draft)">
+                          {{ t('page.gpt.draft_ignore') }}
+                        </t-button>
+                      </template>
+                      <span v-else class="draft-write-tip">{{ t('page.gpt.write_disabled_tip') }}</span>
+                    </div>
+                    <div v-if="draft.failMsg" class="draft-fail-msg">{{ draft.failMsg }}</div>
+                  </div>
+                </div>
                 <div v-if="item.role === 'assistant' && item.content && !item.loading" class="msg-ops">
                   <t-button variant="text" size="small" @click="copyMessage(item.content)">
                     <copy-icon />
@@ -103,7 +173,12 @@
             </t-textarea>
             <div class="input-foot">
               <span class="input-hint">{{ t('page.gpt.send_hint') }}</span>
-              <t-button v-if="gptChecked && !gptHasToken" theme="primary" size="small" @click="gptConfigVisible = true">
+              <t-button
+                v-if="gptChecked && !gptHasToken && isPlatform"
+                theme="primary"
+                size="small"
+                @click="gptConfigVisible = true"
+              >
                 {{ t('page.gpt.unset_action') }}
               </t-button>
               <t-button
@@ -130,7 +205,11 @@
 
     <!-- z-index：t-sticky-tool 自身没有层级，会被表格的固定列（position:relative + 背景）
          压在下面，右下角点不到。给个明确层级，仍低于 drawer/dialog(2500+)。 -->
-    <t-sticky-tool :style="{ position: 'fixed', right: '20px', overflow: 'hidden', height: '70px', zIndex: 100 }" @click="openChat">
+    <t-sticky-tool
+      v-if="canUseAIAssistant"
+      :style="{ position: 'fixed', right: '20px', overflow: 'hidden', height: '70px', zIndex: 100 }"
+      @click="openChat"
+    >
       <t-sticky-item :label="t('page.gpt.assistant')" :icon="renderChatIcon" />
     </t-sticky-tool>
   </div>
@@ -158,12 +237,38 @@ import GptConfigDialog from '@/components/gpt-config/index.vue';
 import bus from '@/utils/bus';
 import { fetchChatStream } from '@/utils/eventSource';
 import { wafGptConfigGetApi } from '@/apis/gpt';
+import {
+  aiAssistantChatApi,
+  aiAssistantDraftApplyApi,
+  aiAssistantDraftDiscardApi,
+  aiAssistantStatusApi,
+} from '@/apis/aiAssistant';
+import { usePermissionStore } from '@/store/modules/permission';
 import { BRAND } from '@/config/brand';
 
 interface ChatItem {
   role: 'user' | 'assistant';
   content: string;
   loading?: boolean;
+  // 配置助手：AI 工具回执与产出的变更草案
+  toolTraces?: AIToolTrace[];
+  drafts?: AIDraftView[];
+}
+
+interface AIToolTrace {
+  tool: string;
+  ok: boolean;
+  summary: string;
+}
+
+// 草案状态机：pending(待确认) → applying → applied / failed；discarded(已忽略)
+type AIDraftState = 'pending' | 'applying' | 'applied' | 'discarded' | 'failed';
+
+interface AIDraftView {
+  draft_id: string;
+  title: string;
+  state: AIDraftState;
+  failMsg?: string;
 }
 
 const { t } = useI18n();
@@ -181,21 +286,40 @@ let streamAborted = false;
 const currentScene = ref('general');
 const gptChecked = ref(false); // 是否已检测过 AI 配置
 const gptChecking = ref(false); // 正在检测 AI 配置
-const gptHasToken = ref(false); // AI 密钥是否已配置
-const gptConfigVisible = ref(false); // AI 参数设置弹窗
+const gptHasToken = ref(false); // AI 上游是否已配置
+const gptConfigVisible = ref(false); // AI 参数设置弹窗（平台侧）
+
+// ===== 配置助手模式（ai:assistant）=====
+const permissionStore = usePermissionStore();
+const canUseAIAssistant = computed(() => permissionStore.has('ai:assistant'));
+const isPlatform = computed(() => permissionStore.isPlatform);
+const configMode = ref(false); // 当前是否处于配置助手模式（非流式 + 工具编排 + 草案确认）
+const aiWriteEnabled = ref(false); // 平台是否开放 AI 配置变更（写工具）
+const aiAssistantEnabled = ref(true); // 平台总开关（关闭时给出明确提示）
 
 const renderChatIcon = () => h(ChatIcon);
 
 // 空态里的建议问题：让用户知道这儿能问什么，点一条直接开聊
-const suggestions = computed(() => [
-  { label: t('page.gpt.suggest_1_label'), q: t('page.gpt.suggest_1_q') },
-  { label: t('page.gpt.suggest_2_label'), q: t('page.gpt.suggest_2_q') },
-  { label: t('page.gpt.suggest_3_label'), q: t('page.gpt.suggest_3_q') },
-  { label: t('page.gpt.suggest_4_label'), q: t('page.gpt.suggest_4_q') },
-]);
+const suggestions = computed(() => {
+  if (configMode.value) {
+    return [
+      { label: t('page.gpt.config_suggest_1_label'), q: t('page.gpt.config_suggest_1_q') },
+      { label: t('page.gpt.config_suggest_2_label'), q: t('page.gpt.config_suggest_2_q') },
+      { label: t('page.gpt.config_suggest_3_label'), q: t('page.gpt.config_suggest_3_q') },
+      { label: t('page.gpt.config_suggest_4_label'), q: t('page.gpt.config_suggest_4_q') },
+    ];
+  }
+  return [
+    { label: t('page.gpt.suggest_1_label'), q: t('page.gpt.suggest_1_q') },
+    { label: t('page.gpt.suggest_2_label'), q: t('page.gpt.suggest_2_q') },
+    { label: t('page.gpt.suggest_3_label'), q: t('page.gpt.suggest_3_q') },
+    { label: t('page.gpt.suggest_4_label'), q: t('page.gpt.suggest_4_q') },
+  ];
+});
 
 // 非通用场景时在标题旁标一下，用户知道当前这轮在聊什么
 const sceneLabel = computed(() => {
+  if (configMode.value) return t('page.gpt.mode_config');
   if (currentScene.value === 'security_log') return t('page.gpt.scene_security_log');
   if (currentScene.value === 'owasp_rule') return t('page.gpt.scene_owasp_rule');
   return '';
@@ -204,21 +328,29 @@ const sceneLabel = computed(() => {
 // 官方文档（brand.docUrl 未配置时空串，模板据此隐藏入口）
 const docUrl = computed(() => BRAND.docUrl);
 
-/** 检测 AI 是否已配置密钥（后端只回 has_token，不下发明文） */
+/** 检测 AI 可用性：租户走助手状态端点（含平台开关），平台侧兼容旧 gpt 配置端点 */
 async function checkGptConfig() {
   gptChecking.value = true;
   try {
-    const res: any = await wafGptConfigGetApi();
-    gptHasToken.value = !!(res && res.code === 0 && res.data && res.data.has_token);
+    if (canUseAIAssistant.value) {
+      const res: any = await aiAssistantStatusApi();
+      const data = res && res.code === 0 ? res.data : null;
+      gptHasToken.value = !!data?.upstream_configured;
+      aiWriteEnabled.value = !!data?.write_enabled;
+      aiAssistantEnabled.value = data ? data.assistant_enabled !== false : true;
+    } else {
+      const res: any = await wafGptConfigGetApi();
+      gptHasToken.value = !!(res && res.code === 0 && res.data && res.data.has_token);
+    }
   } catch (e) {
     console.log(e);
-    // 拿不到配置时按"未配置"引导，好过给个发不出去的空白对话框
+    // 拿不到状态时按"未配置"处理，好过给个发不出去的空白对话框
     gptHasToken.value = false;
   } finally {
     gptChecked.value = true;
     gptChecking.value = false;
   }
-  return gptHasToken.value;
+  return gptHasToken.value && (configMode.value ? aiAssistantEnabled.value : true);
 }
 
 /** 保存完参数后复检，通过就直接可以聊了 */
@@ -230,17 +362,32 @@ function clearMessage() {
   questionList.value = [];
 }
 
+/** 问答/配置助手模式切换：清空上下文并重检状态 */
+function switchMode(mode: 'chat' | 'config') {
+  if (isStreaming.value) return;
+  const next = mode === 'config';
+  if (next === configMode.value) return;
+  configMode.value = next;
+  currentScene.value = 'general';
+  clearMessage();
+  checkGptConfig();
+}
+
 // 其他页面（日志详情/OWASP规则）把内容甩过来：
 // e 支持两种形式——字符串（老调用，按通用问答处理）或 { q, scene }
 async function onSendAi(e: any) {
   const isObj = e !== null && typeof e === 'object';
   clearMessage();
   aiChatBoxVisible.value = true;
+  configMode.value = false; // 日志分析/规则解读等外部入口固定走问答模式
   currentScene.value = isObj && e.scene ? e.scene : 'general';
   inputMessage.value = isObj ? String(e.q || '') : String(e || '');
   // 没配密钥就别发了，停在引导页；用户配置完点"发送"即可继续
   const configured = await checkGptConfig();
   if (!configured) {
+    if (configMode.value && !aiAssistantEnabled.value) {
+      MessagePlugin.warning(t('page.gpt.assistant_disabled'));
+    }
     return;
   }
   sendMessage();
@@ -328,6 +475,10 @@ async function sendMessage() {
 }
 
 function askQuestion(q: string) {
+  if (configMode.value) {
+    askConfigAssistant(q);
+    return;
+  }
   const ctrl = new AbortController();
   currentCtrl = ctrl;
   isStreaming.value = true;
@@ -376,6 +527,90 @@ function askQuestion(q: string) {
       streamAborted = false;
     },
   });
+}
+
+// ===== 配置助手（非流式）=====
+
+/** 组装文本历史（去掉 loading 占位与草案等附加信息，后端自建工具上下文） */
+function buildHistory() {
+  return questionList.value
+    .filter((item) => !item.loading && item.content)
+    .slice(-12)
+    .map((item) => ({ role: item.role, content: item.content }));
+}
+
+async function askConfigAssistant(q: string) {
+  isStreaming.value = true;
+  const answerIndex = questionList.value.length - 1;
+  try {
+    const res: any = await aiAssistantChatApi({ history: buildHistory(), message: q });
+    const answer = questionList.value[answerIndex];
+    if (!answer) return;
+    if (res && res.code === 0 && res.data) {
+      answer.content = res.data.content || '';
+      answer.toolTraces = res.data.tool_traces || [];
+      answer.drafts = (res.data.drafts || []).map((d: any) => ({
+        draft_id: String(d.draft_id || ''),
+        title: String(d.title || ''),
+        state: 'pending' as AIDraftState,
+      }));
+      if (res.data.write_enabled !== undefined) {
+        aiWriteEnabled.value = !!res.data.write_enabled;
+      }
+      if (!answer.content && !(answer.drafts && answer.drafts.length)) {
+        answer.content = t('page.gpt.tool_trace_empty');
+      }
+    } else {
+      answer.content = `⚠️ ${(res && res.msg) || t('page.gpt.draft_apply_fail')}`;
+    }
+  } catch (e: any) {
+    const answer = questionList.value[answerIndex];
+    if (answer) {
+      answer.loading = false;
+      answer.content = answer.content || `⚠️ ${e?.message || '请求失败'}`;
+    }
+  } finally {
+    isStreaming.value = false;
+    goChatBottom();
+  }
+}
+
+/** 人工确认执行草案（单次消费，后端防重放） */
+async function confirmDraft(draft: AIDraftView) {
+  if (draft.state !== 'pending') return;
+  draft.state = 'applying';
+  try {
+    const res: any = await aiAssistantDraftApplyApi({ draft_id: draft.draft_id });
+    if (res && res.code === 0) {
+      draft.state = 'applied';
+      MessagePlugin.success(res.msg || t('page.gpt.draft_apply_ok'));
+    } else {
+      draft.state = 'failed';
+      draft.failMsg = (res && res.msg) || '';
+      MessagePlugin.error(t('page.gpt.draft_apply_fail'));
+    }
+  } catch (e: any) {
+    draft.state = 'failed';
+    draft.failMsg = e?.message || '';
+    MessagePlugin.error(t('page.gpt.draft_apply_fail'));
+  }
+}
+
+/** 忽略草案 */
+async function discardDraft(draft: AIDraftView) {
+  if (draft.state !== 'pending') return;
+  draft.state = 'applying';
+  try {
+    const res: any = await aiAssistantDraftDiscardApi({ draft_id: draft.draft_id });
+    if (res && res.code === 0) {
+      draft.state = 'discarded';
+    } else {
+      draft.state = 'pending';
+      MessagePlugin.error((res && res.msg) || t('page.gpt.draft_discard_ok'));
+    }
+  } catch (e) {
+    draft.state = 'pending';
+  }
 }
 
 function stopStreaming() {
@@ -644,6 +879,111 @@ function openChat(context: { item: { label?: string } }) {
 }
 .message-wrapper:hover .msg-ops {
   opacity: 1;
+}
+
+/* ============ 配置助手：模式切换 / 工具回执 / 变更草案 ============ */
+.mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 4px;
+  padding: 0 4px;
+  border-right: 1px solid var(--td-component-stroke, #e7e7e7);
+}
+
+.tool-traces {
+  margin-top: 8px;
+  padding: 6px 8px;
+  border: 1px dashed var(--td-component-stroke, #e7e7e7);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--td-text-color-secondary, rgba(0, 0, 0, 0.6));
+}
+.tool-traces-title {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.tool-trace-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 20px;
+}
+.tool-trace-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+.tool-trace-dot.ok {
+  background: var(--td-success-color, #2ba471);
+}
+.tool-trace-dot.fail {
+  background: var(--td-error-color, #d54941);
+}
+.tool-trace-name {
+  font-family: monospace;
+  flex: none;
+}
+.tool-trace-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.draft-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.draft-card {
+  border: 1px solid var(--td-component-stroke, #e7e7e7);
+  border-left: 3px solid var(--td-warning-color, #e37318);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--td-bg-color-container, #fff);
+}
+.draft-card.draft-applied {
+  border-left-color: var(--td-success-color, #2ba471);
+  opacity: 0.75;
+}
+.draft-card.draft-discarded {
+  border-left-color: var(--td-component-stroke, #e7e7e7);
+  opacity: 0.55;
+}
+.draft-card.draft-failed {
+  border-left-color: var(--td-error-color, #d54941);
+}
+.draft-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.draft-title {
+  font-size: 13px;
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.draft-ops {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.draft-write-tip {
+  font-size: 12px;
+  color: var(--td-text-color-secondary, rgba(0, 0, 0, 0.6));
+}
+.draft-fail-msg {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--td-error-color, #d54941);
+  word-break: break-all;
 }
 
 /* ============ 空态：欢迎 + 建议问题 ============ */
