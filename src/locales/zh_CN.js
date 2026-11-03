@@ -440,9 +440,12 @@ export default {
       ai_title: "AI模型管理(测试)",
       monitor_title: "系统监控",
       sql_query_title: "SQL查询工具",
+    },
+    commercial: {
+      parent_title: "商业化",
       tenant_title: "租户管理",
       plan_title: "套餐管理",
-
+      brand_title: "品牌设置",
     },
     notify: {
       parent_title: "通知管理",
