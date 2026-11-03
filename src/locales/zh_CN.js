@@ -168,6 +168,9 @@ export default {
     },
     success: "成功",
     failed: "失败",
+    operation_failed: "操作失败",
+    data_not_found: "未找到数据",
+    default_value: "使用系统默认",
     loading: "加载中",
     required: "必填",
     status_runtime_option: {
@@ -176,6 +179,7 @@ export default {
     },
     tips: {
       api_error: "请求错误",
+      get_failed: "获取失败",
       save_success: "保存成功",
       save_failed: "保存失败",
       delete_success: "删除成功",
@@ -399,7 +403,7 @@ export default {
     tunnel: {
       parent_title: "隧道防护",
       list_title: "隧道管理",
-      tunnel_detail: "隧道详情",
+      tunnel_detail_title: "隧道详情",
     },
     application: {
       parent_title: "应用管理",
@@ -1148,6 +1152,7 @@ export default {
       label_stat_dim: "统计维度",
       dim_ip: "客户端 IP",
       dim_ip_uri: "IP + URL",
+      dim_session: "会话",
       dim_cookie: "Cookie 值",
       dim_header: "请求头值",
       dim_query: "查询参数值",
@@ -3023,6 +3028,7 @@ section_cors: "跨源访问(CORS)",
     },
     ldpurl: {
       new_privacy_url: "新建隐私保护Url",
+      button_add_url: "新建隐私保护Url",
       label_website: "网站",
       label_url: "URL",
       label_compare_type: "匹配方式",
@@ -4303,6 +4309,7 @@ section_cors: "跨源访问(CORS)",
       priority: "优先级",
       request_method: "请求方法",
       remarks: "备注",
+      remarks_tips: "添加备注便于识别",
       rule_type_options: {
         suffix_match: "后缀匹配",
         specific_directory: "指定目录",

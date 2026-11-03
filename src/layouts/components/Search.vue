@@ -66,7 +66,11 @@ const searchOptions = computed<SearchOption[]>(() => {
     for (const route of routes) {
       // 根布局没有 meta，但需要继续展开 children
       if (route.meta?.hidden) continue;
-      const path = route.path.startsWith('/') ? route.path : parentPath ? `${parentPath}/${route.path}` : route.path;
+      // 根布局 path 为 '/'，直接拼接会得到 '//dashboard/base'：
+      // 该路径匹配不到真实路由（只会命中 catch-all 并回落到仪表盘），所以先把重复斜杠归一
+      const path = route.path.startsWith('/')
+        ? route.path
+        : `${parentPath}/${route.path}`.replace(/\/+/g, '/');
       const label = route.meta?.title ? t(route.meta.title) : '';
       if (route.children?.length) {
         flatten(route.children, path, label || parentLabel);
